@@ -21,6 +21,18 @@ FILTER_DEFAULTS = {
     "filter_period_month": None,
 }
 
+# 原生 st.logo 會顯示於導覽上方；SVG 僅包含固定品牌圖文，不載入外部素材。
+SIDEBAR_BRAND = """<svg xmlns="http://www.w3.org/2000/svg" width="238" height="56" viewBox="0 0 238 56">
+<title>InsurRadar — Insurance Intelligence</title>
+<g transform="translate(23 28)" fill="none" stroke="#42CB83" stroke-width="1.6">
+<circle r="19"/><circle r="12" opacity=".65"/><circle r="5" opacity=".5"/>
+<path d="M0 0 14-14M-19 0H19M0-19V19" opacity=".7"/>
+<circle cx="9" cy="-9" r="2.8" fill="#42CB83" stroke="none"/>
+</g>
+<text x="54" y="27" fill="#F2FAF5" font-family="Arial, sans-serif" font-size="25" font-weight="700">InsurRadar</text>
+<text x="55" y="45" fill="#B8D7C9" font-family="Arial, sans-serif" font-size="12">Insurance Intelligence</text>
+</svg>"""
+
 
 def load_app_dataset():
     """僅經由既有服務載入及驗證；錯誤時停止，不降級為其他快照。"""
@@ -53,6 +65,7 @@ def reset_filters():
 def render_shell(dataset, notices):
     """所有主頁共用的品牌、Mock 標示與快照基準時間。"""
     st.html(Path(__file__).with_name("styles.css"))
+    st.logo(SIDEBAR_BRAND, size="large", icon_image=":material/radar:")
     if st.session_state.get("active_dataset_id") != dataset["dataset_id"]:
         reset_filters()
         close_evidence_dialog()
@@ -65,10 +78,6 @@ def render_shell(dataset, notices):
                 st.session_state.pop(key, None)
         st.session_state["active_dataset_id"] = dataset["dataset_id"]
     with st.sidebar:
-        st.title("InsurRadar")
-        st.caption("保險競品情報分析平台 · InsurHack")
-        st.caption("美元利率變動型終身壽險")
-        st.divider()
         if dataset["data_mode"] == "mock":
             st.warning("Mock Data／模擬資料")
         else:

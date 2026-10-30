@@ -1,0 +1,307 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "mock_dataset_2026_10_v1",
+  "data_mode": "mock",
+  "mock_notice": "【Mock／模擬資料】所有公司、商品、利率、新聞、原文、日期及複核紀錄均為功能展示而虛構，不代表真實市場資訊、官方文件或實際人工審核；不得據此作成商品或投保決策。",
+  "as_of": "2026-10-30T09:00:00+08:00",
+  "products": [
+    {
+      "product_id": "mock_product_001", "is_mock": true,
+      "company_id": "mock_company_001", "company_name": "模擬甲人壽",
+      "product_name": "模擬甲美元傳承終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 0, "min_issue_age": 20, "max_issue_age": 70, "conditions": "【Mock】躉繳展示條件，非實際承保規則。", "evidence_ids": ["mock_evidence_001"]},
+        {"payment_term_years": 6, "min_issue_age": 20, "max_issue_age": 60, "conditions": "【Mock】六年繳費展示條件，非實際承保規則。", "evidence_ids": ["mock_evidence_001"]}
+      ],
+      "benefits": ["【Mock】身故保障", "【Mock】傳承需求展示"],
+      "channels": ["【Mock】銀行保險"],
+      "launched_on": "2026-10-01", "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_001"]
+    },
+    {
+      "product_id": "mock_product_002", "is_mock": true,
+      "company_id": "mock_company_001", "company_name": "模擬甲人壽",
+      "product_name": "模擬甲美元安心終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 6, "min_issue_age": 18, "max_issue_age": 65, "conditions": "【Mock】六年繳費展示條件。", "evidence_ids": ["mock_evidence_002"]},
+        {"payment_term_years": 10, "min_issue_age": 18, "max_issue_age": 55, "conditions": "【Mock】十年繳費展示條件。", "evidence_ids": ["mock_evidence_002"]}
+      ],
+      "benefits": ["【Mock】身故保障", "【Mock】保費豁免特色"],
+      "channels": ["【Mock】業務員"],
+      "launched_on": "2026-10-02", "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_002"]
+    },
+    {
+      "product_id": "mock_product_003", "is_mock": true,
+      "company_id": "mock_company_002", "company_name": "模擬乙人壽",
+      "product_name": "模擬乙美元穩健終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 6, "min_issue_age": 0, "max_issue_age": 70, "conditions": "【Mock】僅供年齡與年期篩選展示，另有條件須查閱原文。", "evidence_ids": ["mock_evidence_003"]}
+      ],
+      "benefits": ["【Mock】身故保障", "【Mock】完全失能保障"],
+      "channels": ["【Mock】銀行保險", "【Mock】業務員"],
+      "launched_on": "2026-10-03", "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_003"]
+    },
+    {
+      "product_id": "mock_product_004", "is_mock": true,
+      "company_id": "mock_company_003", "company_name": "模擬丙人壽",
+      "product_name": "模擬丙美元長享終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 10, "min_issue_age": 20, "max_issue_age": 65, "conditions": "【Mock】十年繳費展示條件，非實際承保規則。", "evidence_ids": ["mock_evidence_004"]}
+      ],
+      "benefits": ["【Mock】身故保障", "【Mock】生存給付特色"],
+      "channels": ["【Mock】業務員"],
+      "launched_on": "2026-10-04", "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_004"]
+    },
+    {
+      "product_id": "mock_product_005", "is_mock": true,
+      "company_id": "mock_company_004", "company_name": "模擬丁人壽",
+      "product_name": "模擬丁美元樂活終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 0, "min_issue_age": 30, "max_issue_age": 75, "conditions": "【Mock】躉繳展示條件，非實際承保規則。", "evidence_ids": ["mock_evidence_005"]}
+      ],
+      "benefits": ["【Mock】身故保障", "【Mock】退休規劃展示"],
+      "channels": ["【Mock】銀行保險"],
+      "launched_on": "2026-10-05", "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_005"]
+    },
+    {
+      "product_id": "mock_product_006", "is_mock": true,
+      "company_id": "mock_company_005", "company_name": "模擬戊人壽",
+      "product_name": "模擬戊美元待補終身壽險（Mock）",
+      "product_type": "interest_sensitive_whole_life", "currency": "USD",
+      "eligibility_rules": [
+        {"payment_term_years": 6, "min_issue_age": null, "max_issue_age": null, "conditions": "【Mock】年齡資料待補，不得視為符合投保條件。", "evidence_ids": ["mock_evidence_006"]}
+      ],
+      "benefits": ["【Mock】身故保障；其他特色待補"],
+      "channels": [],
+      "launched_on": null, "discontinued_on": null,
+      "evidence_ids": ["mock_evidence_006"]
+    }
+  ],
+  "rates": [
+    {"rate_id": "mock_rate_001", "is_mock": true, "product_id": "mock_product_001", "rate_type": "declared", "rate_percent": 3.1, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": "【Mock】僅適用躉繳展示方案，不適用同商品六年繳費方案。", "evidence_ids": ["mock_evidence_007"]},
+    {"rate_id": "mock_rate_002", "is_mock": true, "product_id": "mock_product_002", "rate_type": "declared", "rate_percent": 3.2, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": "【Mock】僅適用十年繳費展示方案。", "evidence_ids": ["mock_evidence_008"]},
+    {"rate_id": "mock_rate_003", "is_mock": true, "product_id": "mock_product_003", "rate_type": "declared", "rate_percent": 3.3, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": "【Mock】適用六年繳費展示方案。", "evidence_ids": ["mock_evidence_009"]},
+    {"rate_id": "mock_rate_004", "is_mock": true, "product_id": "mock_product_004", "rate_type": "declared", "rate_percent": 3.0, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": "【Mock】適用十年繳費展示方案。", "evidence_ids": ["mock_evidence_010"]},
+    {"rate_id": "mock_rate_005", "is_mock": true, "product_id": "mock_product_005", "rate_type": "declared", "rate_percent": 3.15, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": "【Mock】適用躉繳展示方案。", "evidence_ids": ["mock_evidence_011"]},
+    {"rate_id": "mock_rate_006", "is_mock": true, "product_id": "mock_product_006", "rate_type": "declared", "rate_percent": null, "period_month": "2026-10", "effective_from": "2026-10-01", "effective_to": "2026-10-31", "applicable_conditions": null, "evidence_ids": ["mock_evidence_012"]}
+  ],
+  "news": [
+    {
+      "news_id": "mock_news_001", "is_mock": true,
+      "title": "【Mock】模擬甲人壽展示兩款不同繳費方案",
+      "publisher": "模擬商品公告室（非真實媒體）", "published_at": "2026-10-26T10:00:00+08:00", "source_url": null,
+      "category": "product", "company_ids": ["mock_company_001"], "product_ids": ["mock_product_001", "mock_product_002"],
+      "summary_points": [
+        {"text": "【Mock】兩款虛構商品用於展示同公司多商品的比較方式。", "evidence_ids": ["mock_evidence_013"]},
+        {"text": "【Mock】比較前須分開閱讀繳費年期與投保條件，不代表任何實際新品消息。", "evidence_ids": ["mock_evidence_013"]}
+      ],
+      "generation_mode": "mock", "evidence_ids": ["mock_evidence_013"]
+    },
+    {
+      "news_id": "mock_news_002", "is_mock": true,
+      "title": "【Mock】模擬監理情報：來源與資料日期的揭露練習",
+      "publisher": "模擬情報編輯室（非主管機關）", "published_at": "2026-10-27T11:00:00+08:00", "source_url": null,
+      "category": "regulatory", "company_ids": ["mock_company_002", "mock_company_003"], "product_ids": ["mock_product_003", "mock_product_004"],
+      "summary_points": [
+        {"text": "【Mock】此虛構練習資料用於展示監理情報分類及證據檢視。", "evidence_ids": ["mock_evidence_014"]},
+        {"text": "【Mock】內容不是現行法規、正式公告或法律解釋。", "evidence_ids": ["mock_evidence_014"]}
+      ],
+      "generation_mode": "mock", "evidence_ids": ["mock_evidence_014"]
+    },
+    {
+      "news_id": "mock_news_003", "is_mock": true,
+      "title": "【Mock】模擬利率情報：比較前先核對月份與適用條件",
+      "publisher": "模擬利率資料室（非真實媒體）", "published_at": "2026-10-28T08:30:00+08:00", "source_url": null,
+      "category": "interest_rate", "company_ids": ["mock_company_001", "mock_company_002", "mock_company_003", "mock_company_004"],
+      "product_ids": ["mock_product_001", "mock_product_002", "mock_product_003", "mock_product_004", "mock_product_005"],
+      "summary_points": [
+        {"text": "【Mock】本展示只有單一月份的虛構宣告利率，不展示調升或調降。", "evidence_ids": ["mock_evidence_015"]},
+        {"text": "【Mock】不同適用條件的數值不直接作優劣排名。", "evidence_ids": ["mock_evidence_015"]}
+      ],
+      "generation_mode": "mock", "evidence_ids": ["mock_evidence_015"]
+    },
+    {
+      "news_id": "mock_news_004", "is_mock": true,
+      "title": "【Mock】模擬市場筆記：發佈日期待確認",
+      "publisher": "模擬市場筆記室（非真實媒體）", "published_at": null, "source_url": null,
+      "category": "market", "company_ids": [], "product_ids": [],
+      "summary_points": [
+        {"text": "【Mock】此虛構市場筆記缺少來源日期，僅供待確認狀態展示。", "evidence_ids": ["mock_evidence_016"]},
+        {"text": "【Mock】未取得日期前，不應納入指定日期區間的情報。", "evidence_ids": ["mock_evidence_016"]}
+      ],
+      "generation_mode": "mock", "evidence_ids": ["mock_evidence_016"]
+    }
+  ],
+  "insights": [
+    {
+      "insight_id": "mock_insight_001", "is_mock": true,
+      "title": "【Mock】適用條件不同，先列示再比較",
+      "statement": "【Mock】模擬甲的兩款商品分別列示躉繳與十年繳費方案之展示利率，不能直接據此判定商品優劣；這是預先撰寫的模擬觀察，並非 LLM 分析。",
+      "product_ids": ["mock_product_001", "mock_product_002"], "evidence_ids": ["mock_evidence_007", "mock_evidence_008"],
+      "generation_mode": "mock", "conclusion_review_status": "unreviewed", "conclusion_reviewed_by": null, "conclusion_reviewed_at": null
+    },
+    {
+      "insight_id": "mock_insight_002", "is_mock": true,
+      "title": "【Mock】證據複核與結論複核必須分開",
+      "statement": "【Mock】模擬乙與模擬丙方案繳費年期不同，可先依年期篩選再查看投保年齡；引用證據已完成模擬複核，但此觀察結論仍未複核，不代表真實市場結論。",
+      "product_ids": ["mock_product_003", "mock_product_004"], "evidence_ids": ["mock_evidence_003", "mock_evidence_004"],
+      "generation_mode": "mock", "conclusion_review_status": "unreviewed", "conclusion_reviewed_by": null, "conclusion_reviewed_at": null
+    },
+    {
+      "insight_id": "mock_insight_003", "is_mock": true,
+      "title": "【Mock】模擬戊方案資料不足，暫不作利率比較",
+      "statement": "【Mock】模擬戊方案缺少展示利率數值，引用片段與文件版本也待補；目前僅能列為待確認問題，不提供利率高低結論。",
+      "product_ids": ["mock_product_006"], "evidence_ids": ["mock_evidence_012"],
+      "generation_mode": "mock", "conclusion_review_status": "unreviewed", "conclusion_reviewed_by": null, "conclusion_reviewed_at": null
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "mock_evidence_001", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬甲傳承商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_001",
+      "excerpt": "【模擬原文】模擬甲傳承方案提供躉繳（20 至 70 歲）及六年繳費（20 至 60 歲）展示條件；包含身故保障與傳承需求展示，通路為模擬銀行保險。非真實商品條款。",
+      "product_ids": ["mock_product_001"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-27T14:00:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_002", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬甲安心商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-02", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_002",
+      "excerpt": "【模擬原文】模擬甲安心方案提供六年繳費（18 至 65 歲）及十年繳費（18 至 55 歲）展示條件；含身故保障與保費豁免特色，通路為模擬業務員。非真實商品條款。",
+      "product_ids": ["mock_product_002"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-27T14:10:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_003", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬乙穩健商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-03", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_003",
+      "excerpt": "【模擬原文】模擬乙穩健方案提供六年繳費、0 至 70 歲的展示範圍；包含身故及完全失能保障，通路為模擬銀行保險與業務員，其他承保條件仍須另行確認。非真實商品條款。",
+      "product_ids": ["mock_product_003"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-28T14:00:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_004", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬丙長享商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-04", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_004",
+      "excerpt": "【模擬原文】模擬丙長享方案提供十年繳費、20 至 65 歲的展示條件，包含身故保障及生存給付特色，通路為模擬業務員。非真實商品條款。",
+      "product_ids": ["mock_product_004"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-28T14:10:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_005", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬丁樂活商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-05", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_005",
+      "excerpt": "【模擬原文】模擬丁樂活方案提供躉繳、30 至 75 歲的展示條件，包含身故保障與退休規劃展示，通路為模擬銀行保險。非真實商品條款。",
+      "product_ids": ["mock_product_005"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_006", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬戊待補商品說明片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-06", "captured_at": null, "document_version": "mock-product-v1",
+      "page": null, "section": "evidence_id=mock_evidence_006",
+      "excerpt": "【模擬原文】模擬戊方案用於六年繳費資料展示；身故保障以外的特色、投保年齡及銷售通路均待補，不應推測為可承保。非真實商品條款。",
+      "product_ids": ["mock_product_006"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_007", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬甲傳承十月利率片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-rate-2026-10-v1",
+      "page": null, "section": "evidence_id=mock_evidence_007",
+      "excerpt": "【模擬原文】模擬甲傳承方案於 2026 年 10 月 1 日至 31 日的虛構宣告利率為 3.10%，僅適用躉繳展示方案，不適用六年繳費方案。此數值非真實市場資訊。",
+      "product_ids": ["mock_product_001"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-28T15:00:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_008", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬甲安心十月利率片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-rate-2026-10-v1",
+      "page": null, "section": "evidence_id=mock_evidence_008",
+      "excerpt": "【模擬原文】模擬甲安心方案於 2026 年 10 月 1 日至 31 日的虛構宣告利率為 3.20%，僅適用十年繳費展示方案。此數值非真實市場資訊。",
+      "product_ids": ["mock_product_002"], "human_review_status": "confirmed", "reviewed_by": "模擬資料校對者（非真實人工審核）", "reviewed_at": "2026-10-28T15:10:00+08:00"
+    },
+    {
+      "evidence_id": "mock_evidence_009", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬乙穩健十月利率片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-rate-2026-10-v1",
+      "page": null, "section": "evidence_id=mock_evidence_009",
+      "excerpt": "【模擬原文】模擬乙穩健方案於 2026 年 10 月 1 日至 31 日的虛構宣告利率為 3.30%，適用六年繳費展示方案。此數值非真實市場資訊。",
+      "product_ids": ["mock_product_003"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_010", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬丙長享十月利率片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-rate-2026-10-v1",
+      "page": null, "section": "evidence_id=mock_evidence_010",
+      "excerpt": "【模擬原文】模擬丙長享方案於 2026 年 10 月 1 日至 31 日的虛構宣告利率為 3.00%，適用十年繳費展示方案。此數值非真實市場資訊。",
+      "product_ids": ["mock_product_004"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_011", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬丁樂活十月利率片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": "mock-rate-2026-10-v1",
+      "page": null, "section": "evidence_id=mock_evidence_011",
+      "excerpt": "【模擬原文】模擬丁樂活方案於 2026 年 10 月 1 日至 31 日的虛構宣告利率為 3.15%，適用躉繳展示方案。此數值非真實市場資訊。",
+      "product_ids": ["mock_product_005"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_012", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬戊十月利率待補紀錄",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-01", "captured_at": null, "document_version": null,
+      "page": null, "section": "evidence_id=mock_evidence_012", "excerpt": null,
+      "product_ids": ["mock_product_006"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_013", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬甲商品新聞片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-26", "captured_at": null, "document_version": "mock-news-v1",
+      "page": null, "section": "evidence_id=mock_evidence_013",
+      "excerpt": "【模擬原文】模擬甲人壽的兩款虛構商品展示不同繳費方案；比較時先核對繳費年期與投保條件。本段非實際新聞或新品公告。",
+      "product_ids": ["mock_product_001", "mock_product_002"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_014", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬監理情報練習片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-27", "captured_at": null, "document_version": "mock-news-v1",
+      "page": null, "section": "evidence_id=mock_evidence_014",
+      "excerpt": "【模擬原文】這份虛構練習資料僅供監理情報分類與來源日期展示，不是主管機關公告、現行法規或法律解釋；關聯商品也完全虛構。",
+      "product_ids": ["mock_product_003", "mock_product_004"], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_015", "is_mock": true, "source_type": "mock", "source_title": "【Mock】模擬利率情報片段",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": "2026-10-28", "captured_at": null, "document_version": "mock-news-v1",
+      "page": null, "section": "evidence_id=mock_evidence_015",
+      "excerpt": "【模擬原文】本快照僅有 2026 年 10 月虛構利率；不同適用條件的數值不直接作優劣排名，也不以單一月份宣稱升降趨勢。本段非真實市場資訊。",
+      "product_ids": ["mock_product_001", "mock_product_002", "mock_product_003", "mock_product_004", "mock_product_005"],
+      "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    },
+    {
+      "evidence_id": "mock_evidence_016", "is_mock": true, "source_type": "mock", "source_title": "【Mock】來源日期待確認的市場筆記",
+      "source_url": null, "local_path": "data/mock/dataset.json", "source_date": null, "captured_at": null, "document_version": "mock-news-v1",
+      "page": null, "section": "evidence_id=mock_evidence_016",
+      "excerpt": "【模擬原文】此虛構市場筆記缺少來源及發佈日期，僅供待確認狀態展示；未取得日期前不納入指定日期區間，不代表真實市場動態。",
+      "product_ids": [], "human_review_status": "unreviewed", "reviewed_by": null, "reviewed_at": null
+    }
+  ],
+  "investigations": [
+    {
+      "investigation_id": "mock_investigation_001", "is_mock": true,
+      "title": "【Mock】補齊模擬戊的利率與證據",
+      "reason": "【Mock】展示利率數值、引用原文及文件版本缺漏，不足以比較；商品投保年齡也待補。",
+      "priority": "high", "status": "open", "product_ids": ["mock_product_006"], "evidence_ids": ["mock_evidence_006", "mock_evidence_012"],
+      "missing_fields": ["rate_percent", "excerpt", "document_version", "min_issue_age", "max_issue_age"],
+      "suggested_action": "【Mock】由資料提供者補齊並校對，再重新執行資料驗證；不自行補造數值。"
+    },
+    {
+      "investigation_id": "mock_investigation_002", "is_mock": true,
+      "title": "【Mock】確認市場筆記的來源日期",
+      "reason": "【Mock】市場筆記與證據均缺少日期，不能納入指定日期範圍。",
+      "priority": "medium", "status": "in_review", "product_ids": [], "evidence_ids": ["mock_evidence_016"],
+      "missing_fields": ["published_at", "source_date"],
+      "suggested_action": "【Mock】確認日期後再更新快照；查不到時保留 null。"
+    },
+    {
+      "investigation_id": "mock_investigation_003", "is_mock": true,
+      "title": "【Mock】獨立複核跨商品觀察結論",
+      "reason": "【Mock】兩筆利率證據已有模擬人工複核，但觀察結論仍未複核，不能由證據狀態自動核准。",
+      "priority": "high", "status": "open", "product_ids": ["mock_product_001", "mock_product_002"], "evidence_ids": ["mock_evidence_007", "mock_evidence_008"],
+      "missing_fields": ["conclusion_reviewed_by", "conclusion_reviewed_at"],
+      "suggested_action": "【Mock】另行檢查原文是否支持結論及比較條件，再記錄結論複核結果。"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+﻿# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+**/secrets.toml
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Operating System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local references and planning documents (not part of the public baseline)
+/REFERENCES/
+/企劃書.md
+/我的工作內容.md
+
+# Future real/raw inputs and generated exports require separate review
+/data/real/
+/data/raw/
+/reports/
+/exports/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log

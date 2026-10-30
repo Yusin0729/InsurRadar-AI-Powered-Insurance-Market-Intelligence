@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InsurRadar 1A 資料快照",
+  "description": "Mock 與真實快照分開交付；第一階段僅使用 Mock，利率僅支援 declared。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset_id", "data_mode", "mock_notice", "as_of", "products", "rates", "news", "insights", "evidence", "investigations"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "dataset_id": {"$ref": "#/$defs/text"},
+    "data_mode": {"enum": ["mock", "real"]},
+    "mock_notice": {"$ref": "#/$defs/nullableText"},
+    "as_of": {"type": "string", "format": "date-time"},
+    "products": {"type": "array", "items": {"$ref": "#/$defs/product"}},
+    "rates": {"type": "array", "items": {"$ref": "#/$defs/rate"}},
+    "news": {"type": "array", "items": {"$ref": "#/$defs/newsItem"}},
+    "insights": {"type": "array", "items": {"$ref": "#/$defs/insight"}},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidenceItem"}},
+    "investigations": {"type": "array", "items": {"$ref": "#/$defs/investigation"}}
+  },
+  "$defs": {
+    "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "nullableText": {"anyOf": [{"$ref": "#/$defs/text"}, {"type": "null"}]},
+    "nullableDate": {"type": ["string", "null"], "format": "date"},
+    "nullableTime": {"type": ["string", "null"], "format": "date-time"},
+    "nullableUrl": {"type": ["string", "null"], "format": "uri", "pattern": "^https?://"},
+    "ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "citations": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "reviewStatus": {"enum": ["unreviewed", "confirmed", "rejected"]},
+    "generationMode": {"enum": ["mock", "human", "llm"]},
+    "eligibilityRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payment_term_years", "min_issue_age", "max_issue_age", "conditions", "evidence_ids"],
+      "properties": {
+        "payment_term_years": {"type": "integer", "minimum": 0, "description": "0 代表躉繳；其餘代表繳費年數。"},
+        "min_issue_age": {"type": ["integer", "null"], "minimum": 0},
+        "max_issue_age": {"type": ["integer", "null"], "minimum": 0},
+        "conditions": {"$ref": "#/$defs/nullableText"},
+        "evidence_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_id", "is_mock", "company_id", "company_name", "product_name", "product_type", "currency", "eligibility_rules", "benefits", "channels", "launched_on", "discontinued_on", "evidence_ids"],
+      "properties": {
+        "product_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "company_id": {"$ref": "#/$defs/text"},
+        "company_name": {"$ref": "#/$defs/text"},
+        "product_name": {"$ref": "#/$defs/text"},
+        "product_type": {"const": "interest_sensitive_whole_life"},
+        "currency": {"const": "USD"},
+        "eligibility_rules": {"type": "array", "items": {"$ref": "#/$defs/eligibilityRule"}},
+        "benefits": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+        "channels": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+        "launched_on": {"$ref": "#/$defs/nullableDate"},
+        "discontinued_on": {"$ref": "#/$defs/nullableDate"},
+        "evidence_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "rate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rate_id", "is_mock", "product_id", "rate_type", "rate_percent", "period_month", "effective_from", "effective_to", "applicable_conditions", "evidence_ids"],
+      "properties": {
+        "rate_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "product_id": {"$ref": "#/$defs/text"},
+        "rate_type": {"const": "declared"},
+        "rate_percent": {"type": ["number", "null"], "description": "以百分點記錄，缺值為 null；不得視為保證報酬或 IRR。"},
+        "period_month": {"type": "string", "minLength": 7, "maxLength": 7, "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"},
+        "effective_from": {"$ref": "#/$defs/nullableDate"},
+        "effective_to": {"$ref": "#/$defs/nullableDate"},
+        "applicable_conditions": {"$ref": "#/$defs/nullableText"},
+        "evidence_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidence_ids"],
+      "properties": {
+        "text": {"$ref": "#/$defs/text"},
+        "evidence_ids": {"$ref": "#/$defs/citations"}
+      }
+    },
+    "newsItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["news_id", "is_mock", "title", "publisher", "published_at", "source_url", "category", "company_ids", "product_ids", "summary_points", "generation_mode", "evidence_ids"],
+      "properties": {
+        "news_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "title": {"$ref": "#/$defs/text"},
+        "publisher": {"$ref": "#/$defs/nullableText"},
+        "published_at": {"$ref": "#/$defs/nullableTime"},
+        "source_url": {"$ref": "#/$defs/nullableUrl"},
+        "category": {"enum": ["regulatory", "product", "interest_rate", "market"]},
+        "company_ids": {"$ref": "#/$defs/ids"},
+        "product_ids": {"$ref": "#/$defs/ids"},
+        "summary_points": {"type": "array", "items": {"$ref": "#/$defs/claim"}},
+        "generation_mode": {"$ref": "#/$defs/generationMode"},
+        "evidence_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "insight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["insight_id", "is_mock", "title", "statement", "product_ids", "evidence_ids", "generation_mode", "conclusion_review_status", "conclusion_reviewed_by", "conclusion_reviewed_at"],
+      "properties": {
+        "insight_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "title": {"$ref": "#/$defs/text"},
+        "statement": {"$ref": "#/$defs/text"},
+        "product_ids": {"$ref": "#/$defs/ids"},
+        "evidence_ids": {"$ref": "#/$defs/citations"},
+        "generation_mode": {"$ref": "#/$defs/generationMode"},
+        "conclusion_review_status": {"$ref": "#/$defs/reviewStatus"},
+        "conclusion_reviewed_by": {"$ref": "#/$defs/nullableText"},
+        "conclusion_reviewed_at": {"$ref": "#/$defs/nullableTime"}
+      }
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "is_mock", "source_type", "source_title", "source_url", "local_path", "source_date", "captured_at", "document_version", "page", "section", "excerpt", "product_ids", "human_review_status", "reviewed_by", "reviewed_at"],
+      "properties": {
+        "evidence_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "source_type": {"enum": ["mock", "official_page", "pdf", "news"]},
+        "source_title": {"$ref": "#/$defs/text"},
+        "source_url": {"$ref": "#/$defs/nullableUrl"},
+        "local_path": {"$ref": "#/$defs/nullableText"},
+        "source_date": {"$ref": "#/$defs/nullableDate"},
+        "captured_at": {"$ref": "#/$defs/nullableTime"},
+        "document_version": {"$ref": "#/$defs/nullableText"},
+        "page": {"type": ["integer", "null"], "minimum": 1},
+        "section": {"$ref": "#/$defs/nullableText"},
+        "excerpt": {"$ref": "#/$defs/nullableText"},
+        "product_ids": {"$ref": "#/$defs/ids"},
+        "human_review_status": {"$ref": "#/$defs/reviewStatus"},
+        "reviewed_by": {"$ref": "#/$defs/nullableText"},
+        "reviewed_at": {"$ref": "#/$defs/nullableTime"}
+      }
+    },
+    "investigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["investigation_id", "is_mock", "title", "reason", "priority", "status", "product_ids", "evidence_ids", "missing_fields", "suggested_action"],
+      "properties": {
+        "investigation_id": {"$ref": "#/$defs/text"},
+        "is_mock": {"type": "boolean"},
+        "title": {"$ref": "#/$defs/text"},
+        "reason": {"$ref": "#/$defs/text"},
+        "priority": {"enum": ["high", "medium", "low"]},
+        "status": {"enum": ["open", "in_review", "resolved"]},
+        "product_ids": {"$ref": "#/$defs/ids"},
+        "evidence_ids": {"$ref": "#/$defs/ids"},
+        "missing_fields": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+        "suggested_action": {"$ref": "#/$defs/text"}
+      }
+    }
+  }
+}

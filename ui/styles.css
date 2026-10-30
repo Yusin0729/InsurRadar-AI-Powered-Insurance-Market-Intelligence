@@ -1,0 +1,36 @@
+/* U 階段：優先使用原生主題；st-key-* 為自行指定的容器樣式範圍。 */
+.st-key-kpis { margin: 0.5rem 0 1.25rem; }
+.st-key-kpis [data-testid="stMetric"] {
+    background: #fff;
+    border: 1px solid #d7e3dc;
+    border-top: 3px solid #008a66;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    min-height: 108px;
+}
+.st-key-dashboard_layout, .st-key-assistant_layout { container-type: inline-size; }
+.st-key-dashboard_layout [data-testid="stVerticalBlockBorderWrapper"],
+.st-key-assistant_layout [data-testid="stVerticalBlockBorderWrapper"] {
+    background: #fff;
+}
+.st-key-product_detail, .st-key-market_filters,
+[class*="st-key-news_card_"], [class*="st-key-insight_card_"],
+[class*="st-key-investigation_card_"], .st-key-evidence_excerpt {
+    background: #fff;
+    border-radius: 12px;
+}
+.st-key-evidence_excerpt { border-left: 4px solid #008a66; }
+.st-key-evidence_excerpt p { line-height: 1.8; }
+/* 僅在自訂布局內針對欄容器調整；不依賴生成 class 或 DOM 次序。
+   Streamlit 升級時須回歸這兩個 data-testid；失效仍保留原生換行。 */
+@container (max-width: 900px) {
+    .st-key-assistant_layout [data-testid="stColumn"],
+    .st-key-dashboard_layout [data-testid="stColumn"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+    }
+}
+@media (max-width: 700px) {
+    .st-key-kpis [data-testid="stMetric"] { padding: 0.75rem; }
+}

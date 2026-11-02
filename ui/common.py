@@ -9,6 +9,7 @@ import streamlit as st
 from services.data_service import (
     DatasetLoadError, DatasetWarning, get_declared_rates, get_products, load_dataset,
 )
+from services.c_integration import get_dataset_path
 from ui.evidence import close_evidence_dialog
 
 
@@ -35,11 +36,14 @@ SIDEBAR_BRAND = """<svg xmlns="http://www.w3.org/2000/svg" width="238" height="5
 
 
 def load_app_dataset():
-    """僅經由既有服務載入及驗證；錯誤時停止，不降級為其他快照。"""
+    """僅經由既有服務載入及驗證；錯誤時停止，不降級為其他快照。
+
+    INSURRADAR_DATASET_PATH 有值時載入該快照（C 組真實資料），否則為預設 Mock。
+    """
     try:
         with warnings.catch_warnings(record=True) as captured:
             warnings.simplefilter("always", DatasetWarning)
-            dataset = load_dataset()
+            dataset = load_dataset(get_dataset_path())
     except DatasetLoadError as error:
         st.error("資料快照無法載入，請檢查資料檔與驗證結果。")
         st.code(str(error), language=None)

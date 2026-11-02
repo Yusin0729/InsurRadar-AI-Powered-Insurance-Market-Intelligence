@@ -4,3 +4,5 @@ jsonschema>=4.18,<5
 streamlit==1.66.1
 google-genai>=2.34.0
 python-dotenv>=1.2.0
+# C 組：向量檢索（Streamlit 已附帶，於此明確宣告）
+numpy>=1.26

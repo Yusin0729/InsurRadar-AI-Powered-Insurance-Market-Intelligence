@@ -1,7 +1,8 @@
-"""AI 觀察、待追查事項與 RAG 智慧問答；外部套件：streamlit、google-genai。"""
+"""AI 觀察、待追查事項與 RAG 智慧問答；外部套件：streamlit、google-genai、numpy（C 組檢索器）。"""
 
 import streamlit as st
 
+from services.c_integration import describe_mode, get_retriever
 from services.data_service import get_insights, get_investigations
 from services.rag_service import answer_rag_query
 from ui.dashboard import PRIORITY_LABELS, STATUS_LABELS
@@ -125,6 +126,8 @@ def render_assistant(dataset):
                         retrieved = msg.get("retrieved_evidence", [])
                         if retrieved:
                             with st.expander(f"檢索到的依據片段（共 {len(retrieved)} 筆）"):
+                                if msg.get("retrieval_mode"):
+                                    st.caption(msg["retrieval_mode"])
                                 for r_item in retrieved:
                                     st.caption(f"[{r_item['evidence_id']}] 《{r_item['source_title']}》（相關度: {r_item['score']}）")
                                     st.write(r_item["excerpt"])
@@ -140,7 +143,8 @@ def render_assistant(dataset):
                 "content": active_query,
             })
             with st.spinner("正在檢索相關保單與證據，並由 Gemini 生成解答..."):
-                result = answer_rag_query(active_query, dataset)
+                retriever = get_retriever(dataset)
+                result = answer_rag_query(active_query, dataset, retriever=retriever)
                 st.session_state["rag_chat_messages"].append({
                     "role": "assistant",
                     "dataset_id": dataset["dataset_id"],
@@ -154,6 +158,7 @@ def render_assistant(dataset):
                     "verification_passed": result.get("verification_passed", False),
                     "error_message": result.get("error_message"),
                     "is_mock": result.get("is_mock", True),
+                    "retrieval_mode": describe_mode(retriever),
                 })
             st.rerun()
 

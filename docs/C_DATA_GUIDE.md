@@ -21,6 +21,12 @@ D 組的資料服務簽章、驗證規則、Schema、Mock 快照、RAG 驗證邏
 | `templates/real_csv/*.csv` | B 組填寫用的 8 個 CSV 欄位範本 |
 | `tests/test_c_retriever.py` | 檢索器與 CSV 轉換測試（10 項） |
 | `tests/test_c_integration.py` | 串接測試（8 項，含助手頁 AppTest） |
+| `tools/scrape_rates.py` | 官網宣告利率抓取，見第四之一節 |
+| `tests/test_scrape_rates.py` | 抓取工具測試（9 項，不連網） |
+| `tools/parse_pdf.py` | 條款／DM PDF 解析，見第四之二節 |
+| `tests/test_parse_pdf.py` | PDF 解析測試（9 項，用程式產生的 PDF） |
+| `tools/extract_fields.py`、`prompts/extract_fields.txt` | LLM 結構化抽取，見第四之三節 |
+| `tests/test_extract_fields.py` | 抽取驗證測試（7 項，假的模型回應） |
 
 ## 二、對 D 組檔案的修改（已套用，2026-11-02）
 
@@ -87,6 +93,69 @@ python -B -m unittest discover -s tests -v
 | investigations.csv | 否 | 待追查事項；`priority` 為 high／medium／low，`status` 為 open／in_review／resolved |
 
 證據的 `product_ids` 必須和引用它的商品或利率一致，否則驗證會報 `evidence_scope_mismatch`。
+
+## 四之一、宣告利率抓取（`tools/scrape_rates.py`，2026-11-02 新增）
+
+```powershell
+python -m tools.scrape_rates --compare data/real/dataset.json
+```
+
+三家官網的宣告利率頁都是前端動態載入，頁面 HTML 沒有數字。程式直接呼叫頁面背後的公開查詢 API，只用 Python 標準函式庫，不新增套件。
+
+| 商品 | 官網頁面 | 使用的 API | 比對方式 |
+| --- | --- | --- | --- |
+| `prd_acupl` 南山 | `nanshanlife/service-rate-1` | `portal-api/DeclaredRate/getTypesProducts`、`/List` | 商品全名完全相符，回傳列的名稱需含 `【ACUPL】` |
+| `prd_u09r0` 台灣人壽 | `investment-rate-interest-rate` | `portal-api/Rate/Product/A`、`POST /Rate` | 商品全名完全相符（官網名稱不含代碼 U09R0） |
+| `prd_fbo` 富邦 | `product/quick/interest-rate/rate-change` | `POST life/api/v1/node/search-rates`（nodeId 470、D3-1-G） | 險種代碼 `FBO` 完全相符 |
+
+- **原始快照**：每次執行在 `data/real/raw/rates/<時間戳>/` 原樣保存每個回應，`manifest.json` 記錄網址、參數、狀態碼、SHA-256 與擷取時間（+08:00）。
+- **整理結果**：寫到 `data/real/processed/declared_rates.json` 與 `.csv`，民國年月轉成 `YYYY-MM`，利率轉成數字。
+- **抓不到就退回快照**：連線失敗、HTTP 錯誤、找不到商品、商品名稱對到多筆，或同一個月份出現兩個不同數值時，該商品標示失敗，並沿用上一次成功的紀錄，不寫入空值。
+- **不修改 `data/real/dataset.json`**：`--compare` 只列出官網和快照的差異，數值要經 B 組校對後才放進快照。
+- 以上目錄都在 `/data/real/`，已被 `.gitignore` 排除。
+- 各家 API 不是公開文件化的介面，網站改版時參數可能失效，失效時程式會回報失敗並沿用舊紀錄。
+
+## 四之二、條款／DM PDF 解析（`tools/parse_pdf.py`，2026-11-02 新增）
+
+```powershell
+python -m tools.parse_pdf data/real/docs/TaiwanLife_term_034.pdf --doc-id doc_taiwanlife_term_034 `
+  --source-url "https://www.ctbcbank.com/content/dam/twrbo/pdf/insurance/TaiwanLife_term_034.pdf" `
+  --locate data/real/dataset.json
+```
+
+- 用 pdfplumber 逐頁抽取文字。抽不到文字的頁面列在 `empty_pages`，多半是掃描圖片，需要 OCR，本工具不處理。
+- 段落不跨頁，每段都帶 `paragraph_id`（`<doc-id>_p<頁>_<序>`）、頁碼和所屬條號（如「第八條」）。條號會沿用到下一個條號出現為止。
+- 切段規則：空行、條號、項次（一、／（一）／1.）或句末標點。被 PDF 換行切斷的中文會接回，只動換行，不改文字。超過 600 字的段落在句號處再切開。
+- `--locate`：檢查快照裡指向同一份文件的 `pdf` 證據（`local_path` 或 `source_url` 相同），原文實際出現在第幾頁。比對時忽略空白和全半形差異，結果只回報，不修改快照。
+- 輸出到 `data/real/processed/pdf/<doc-id>.json`，內容包含檔案的 SHA-256 和頁數。原始 PDF 放在 `data/real/docs/`。
+
+2026-11-02 實際解析結果：
+
+| 文件 | 頁數／段落 | 備註 |
+| --- | --- | --- |
+| `ACUPL_DM_2026_06.pdf`（南山 ACUPL 商品簡介 2026年6月版） | 4／43 | DM 為多欄排版，第 1 頁不同欄位的文字會交錯成同一行 |
+| `TaiwanLife_term_034.pdf`（台灣人壽超美利條款） | 15／338 | 條號抓取正常 |
+
+`--locate` 的發現：E1、E2、E3 的原文在 DM 中找不到完全相同的文字。相關數字「6年期」「0~75」「1萬美元」「570」都在第 4 頁，但屬於表格內容，而且 E1 混入了括號說明、E2 是計算值，和交接文件第四節記錄的問題一致，需要 B 組改成 PDF 上的原文。
+
+## 四之三、LLM 結構化抽取（`tools/extract_fields.py`，2026-11-02 新增）
+
+```powershell
+python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.json --product-id prd_u09r0
+```
+
+- 輸入是 `parse_pdf` 的段落，用 Gemini 結構化輸出抽取欄位：幣別、繳費年期、各年期投保年齡、最低投保金額、預定利率、DM 假設宣告利率。Prompt 在 `prompts/extract_fields.txt`。
+- 每個值都附 `paragraph_id`、頁碼、條號，以及逐字的 `quote`。
+- 以下情況該值會被拒收，並列出原因：
+  - 段落編號不存在。
+  - 引句不是該段落的原文。
+  - 數字沒有出現在引句裡。
+  - 欄位未定義或格式不符。
+- 同一欄位、同一年期出現不同值時標為 `conflict`，不自行挑選。
+- DM 的假設宣告利率只放在 `assumed_declared_rate_percent`，不會當成公告利率。
+- 結果標記 `generation_mode=llm`、`review_status=unreviewed`，寫到 `data/real/processed/extracted/<doc_id>.json`，並保留模型原始回應與 Prompt 的 SHA-256。**不修改 dataset.json。**
+- 文件超過 6 萬字時，只送含關鍵字（年期、歲、利率等）的段落。目前兩份文件都整份送出：台灣人壽條款約 3.6 萬字，南山 DM 約 9 千字。
+- 2026-11-02：本機沒有設定 `GEMINI_API_KEY`，尚未用真實模型執行，沒有抽取結果。
 
 ## 五、C 組對 RETRIEVER_CONTRACT 的確認
 

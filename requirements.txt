@@ -6,3 +6,5 @@ google-genai>=2.34.0
 python-dotenv>=1.2.0
 # C 組：向量檢索（Streamlit 已附帶，於此明確宣告）
 numpy>=1.26
+# C 組：條款／DM PDF 解析（tools/parse_pdf.py）
+pdfplumber>=0.11

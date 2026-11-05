@@ -27,6 +27,15 @@ D 組的資料服務簽章、驗證規則、Schema、Mock 快照、RAG 驗證邏
 | `tests/test_parse_pdf.py` | PDF 解析測試（9 項，用程式產生的 PDF） |
 | `tools/extract_fields.py`、`prompts/extract_fields.txt` | LLM 結構化抽取，見第四之三節 |
 | `tests/test_extract_fields.py` | 抽取驗證測試（8 項，假的模型回應） |
+| `tools/compare_extracted.py` | 抽取結果與 B 人工表自動比對，見第四之四節 |
+| `tests/test_compare_extracted.py` | 比對測試（8 項） |
+| `tools/add_pdf_evidence.py` | PDF 段落登記為快照證據（建向量庫），見第四之五節 |
+| `tests/test_c_pdf_evidence.py` | 段落證據、索引與嵌入重試測試（10 項，不連網） |
+| `tools/eval_retrieval.py`、`tests/data/retrieval_questions.json` | 檢索評估（10 題 hit@k／MRR），見第四之五節 |
+| `tests/test_eval_retrieval.py` | 檢索評估測試（12 項，假的檢索器） |
+| `services/c_rerank.py` | 檢索排序調整（商品、月份、問題類型加權），見第四之七節 |
+| `tests/test_c_rerank.py` | 排序調整測試（10 項） |
+| `tests/data/retrieval_questions_holdout.json` | 保留題 10 題：改排序前寫定，用來確認不是只對原 10 題有效 |
 
 ## 二、對 D 組檔案的修改（已套用，2026-11-02）
 
@@ -54,6 +63,8 @@ D 組的資料服務簽章、驗證規則、Schema、Mock 快照、RAG 驗證邏
 python -m tools.build_real_dataset --dataset-id real_2026_11_v1 --as-of 2026-11-03T09:00:00+08:00
 # 3. 預先建立向量索引（需 GEMINI_API_KEY；Demo 現場就只需嵌入問題）
 python -m tools.build_index data/real/dataset.json
+# 3b. 重新產生 Demo 問答快取（D 組工具；快照 dataset_id 一改就必須重跑，見第四之八節）
+python -B -m tools.build_demo_cache
 # 4. 用真實快照啟動（也可寫在 .env）
 $env:INSURRADAR_DATASET_PATH="data/real/dataset.json"
 python -B -m streamlit run app.py --server.address 127.0.0.1
@@ -161,6 +172,106 @@ python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.j
 - 結果標記 `generation_mode=llm`、`review_status=unreviewed`，寫到 `data/real/processed/extracted/<doc_id>.json`，並保留模型原始回應與 Prompt 的 SHA-256。**不修改 dataset.json。**
 - 文件超過 6 萬字時，只送含關鍵字（年期、歲、利率等）的段落。目前兩份文件都整份送出：台灣人壽條款約 3.6 萬字，南山 DM 約 9 千字。
 - 2026-11-02：本機沒有設定 `GEMINI_API_KEY`，尚未用真實模型執行，沒有抽取結果。
+
+## 四之四、抽取結果與 B 人工表自動比對（`tools/compare_extracted.py`，2026-11-05 新增）
+
+```powershell
+python -m tools.compare_extracted
+```
+
+- 人工表以 `data/real/dataset.json`（B 的工作簿已轉入）為準：幣別、繳費年期、投保年齡讀商品資料；最低投保金額、預定利率、DM 假設宣告利率讀該商品證據原文。
+- 抽取的最低投保金額依引句單位換成美元（「1萬美元」→ 10000）再比較。
+- 輸出 `data/real/processed/compare/compare_report.csv`（Excel 可直接開）與 `.json`，問題列排在前面：
+  - **不一致**：兩邊數值不同，B 優先校對。
+  - **抽取矛盾**：同一文件抽出不同值，B 判斷哪個正確。
+  - **只有抽取**：人工表沒有，B 確認後可補進工作簿。
+  - **只有人工表**：抽取沒有，通常是抽取的文件沒寫（例如條款沒有投保年齡），B 確認來源文件即可。
+- 沒有抽取文件的商品不列入比對，會在畫面最後列出。本工具不修改 dataset.json。
+
+## 四之五、檢索評估（`tools/eval_retrieval.py`，2026-11-05 新增）
+
+```powershell
+python -m tools.eval_retrieval --offline        # 關鍵字模式（INSURRADAR_OFFLINE=1）
+python -m tools.eval_retrieval                  # 向量＋關鍵字（需 GEMINI_API_KEY）
+python -m tools.eval_retrieval -k 5 --threshold 0.8
+```
+
+- 測試問題在 `tests/data/retrieval_questions.json`：10 題，涵蓋三個真實商品的宣告利率、投保年齡、繳費年期、最低投保金額、預定利率、DM 假設宣告利率、解約金、年繳費率。repo 是公開的，檔案只放問題和預期 `evidence_id`，不放原文。
+- 每題用 `get_retriever(dataset).search(問題, k)` 檢索，與前端問答用同一個檢索器。預期證據任一出現在前 k 筆就算命中。
+- 輸出每題的命中、第一個正確證據的名次、實際檢索模式，以及整體 hit@k 和 MRR。報告寫到 `data/real/processed/eval/retrieval_eval_<模式>_<時間>.json` 與 `.csv`。
+- 沒有 API Key 或嵌入失敗時，檢索器會自動改用關鍵字。報告會照實標成 `keyword`，並在畫面提示「沒有任何一題使用向量檢索」。
+- 結束碼：命中率低於 `--threshold`（預設 0.7）時為 1，快照或問題檔載入失敗時為 2。
+- 快照改版、證據 ID 變動時，若某題的預期證據全都不在快照中，會印出警告。這時要依新快照的原文更新問題檔，不要為了命中而改問題。
+- 測試：`tests/test_eval_retrieval.py`（12 項，用假的檢索器，不連網）。
+
+## 四之六、建向量庫：PDF 段落入庫（`tools/add_pdf_evidence.py`，2026-11-05 新增）
+
+```powershell
+python -m tools.add_pdf_evidence data/real/dataset.json --dataset-id real_2026_11_05_v3 `
+  --as-of 2026-11-05T15:00:00+08:00 --backup data/real/handoff/dataset.v2_before_pdf_evidence.json
+python -m tools.build_index data/real/dataset.json
+```
+
+- **為什麼放進 evidence**：RAG 驗證要求檢索結果的 `evidence_id` 存在於快照，且 `excerpt` 是該證據原文的連續子片段。把每個 PDF 段落登記成一筆 `pdf` 證據，`HybridRetriever` 不必改就能索引，引用彈窗也能顯示頁碼、條號、網址。
+- **欄位**：`evidence_id`＝`paragraph_id`，`page`、`section`（條號）、`excerpt` 照抄段落原文。`source_url`、`local_path`、`captured_at`（解析時間）取自解析檔。商品關聯與版本寫在工具的 `JOBS`。一律 `unreviewed`，不修改商品的 `evidence_ids`。
+- **安全檢查**：本機 PDF 的 SHA-256 與解析檔不符時拒絕寫入。內容有變動卻沿用舊 `dataset_id` 時拒絕寫入。驗證有錯誤時不寫檔。備份檔已存在時不覆蓋。
+- **可重跑**：同一份文件的舊段落證據會先移除再加入。內容相同時顯示「未寫檔」。
+- **嵌入重試**：`tools/build_index.py` 遇到 429／503 時，每批最多試 8 次，指數退避（2～60 秒）。線上問答不重試，失敗就改用關鍵字檢索。免費金鑰的嵌入額度是**每分鐘 100 次請求**（實測每段文字各算一次），建 455 段約需 3 分鐘；剛建完索引時，問答可能暫時退回關鍵字模式。
+
+2026-11-05 執行結果（`real_2026_11_02_v2` → `real_2026_11_05_v3`）：
+
+| 項目 | 數量 |
+| --- | --- |
+| 原有證據（官網頁 34、DM 13） | 47 筆 → 47 個片段 |
+| 南山 ACUPL DM 段落（`prd_acupl`，2026年6月版） | 43 筆 |
+| 台灣人壽超美利條款段落（`prd_u09r0`，版本未知，填 null） | 338 筆 |
+| PDF 段落合計 | 381 筆 → 408 個片段（超過 220 字的段落切成多段） |
+| 新聞 | 0 則（快照的 `news` 是空的，沒有可索引的內容） |
+
+- 驗證 0 錯誤。提示從 76 項增加到 457 項，都是 `source_date` 未知與條款 `document_version` 未知，沒有填猜測值。
+- 索引快取：`data/real/index/real_2026_11_05_v3_5c724de3e6bb4315.npz`（455 × 3072 維）。
+- 新聞要入庫時，須先以 `news` 類型的證據登記原文，再重建索引。
+
+## 四之七、檢索排序調整（`services/c_rerank.py`，2026-11-05 新增）
+
+加入 381 段 PDF 後，D 的 MockRetriever 關鍵字分數大量同分（上限 1.0），長段落和 12 筆月份利率擠掉正確證據。
+`HybridRetriever` 改用 C 自己的關鍵字計分，並在向量與關鍵字兩種模式都套用以下加權（只改排序，不改原文）：
+
+| 規則 | 作法 |
+|---|---|
+| 商品 | 問題提到商品簡稱／代碼／公司（超美利、ACUPL、富邦…），其他商品的證據 ×0.4 |
+| 月份 | 西元⇄民國互通（2026年8月 = 115/8）；指定月份時其他月份利率 ×0.4，沒指定時只留最新一期 |
+| 非利率問題 | 問預定利率、投保年齡等時，月份利率 ×0.5 |
+| 問題類型 | 投保年齡、最低保額、預定利率、假設利率、解約金、費率等，原文沒有對應字詞 ×0.7 |
+| 長段落 | 關鍵字分數依原文長度折減；PDF 自動段落 ×0.85，人工整理的證據優先 |
+
+驗證結果（k=3）。「調整前」在 `real_2026_11_05_v3` 測得；「調整後」為 2026-11-05 晚間在目前快照 **`real_2026_11_05_v4`** 重跑的結果（索引 `data/real/index/real_2026_11_05_v4_5c724de3e6bb4315.npz`，向量模式 20 題實際都走 `hybrid`，沒有退回關鍵字）：
+
+| 題組 | 模式 | 調整前（v3） | 調整後（v4） |
+|---|---|---|---|
+| 原 10 題 | 只用關鍵字 | 4/10，MRR 0.27 | 10/10，MRR 0.90 |
+| 原 10 題 | 向量＋關鍵字 | 10/10，MRR 0.90 | 10/10，MRR 1.00 |
+| 保留題 10 題 | 只用關鍵字 | 2/10，MRR 0.20 | 9/10，MRR 0.80 |
+| 保留題 10 題 | 向量＋關鍵字 | 5/10，MRR 0.45 | 10/10，MRR 0.93 |
+
+v4 的調整後數字與 v3 相同。保留題 h09（超美利條款的預定利率）在只用關鍵字時仍未命中；向量＋關鍵字時排第 3。未針對它調整。
+報告：`data/real/processed/eval/retrieval_eval_keyword_20261105_182931.*`、`_182932.*`（關鍵字，原題／保留題），`retrieval_eval_hybrid_20261105_182941.*`、`_182949.*`（向量＋關鍵字，原題／保留題）。
+
+```powershell
+python -m tools.eval_retrieval --questions tests/data/retrieval_questions_holdout.json --offline
+```
+
+## 四之八、Demo 問答快取（D 組工具，2026-11-05 加入流程）
+
+```powershell
+python -B -m tools.build_demo_cache                                   # 預設 8 題（services/demo_cache.py 的 DEMO_QUESTIONS）
+python -B -m tools.build_demo_cache --refresh "美利大運的宣告利率是多少？"   # 單題重產
+```
+
+- 需要 `.env` 設好 `INSURRADAR_DATASET_PATH`、`GEMINI_API_KEY`、`GEMINI_MODEL`。結果寫到 `data/real/demo_cache/demo_answers.json`，只收錄通過引用驗證的成功或「資料不足」回答。
+- 快取以 `(dataset_id, 題目)` 比對。**每次快照改版（`dataset_id` 改變），都要在 `build_index` 之後重跑本指令**；否則舊快取全部不會命中，現場 Gemini 忙碌時沒有備援答案。
+- 重產後要重新核對每筆回答的數字與引用（核對紀錄見 `docs/BUG_LIST_MVP.md`「Demo 快取核對」）。不要手改快取檔的回答內容；有錯就刪掉該筆或用 `--refresh` 重產。
+- 目前快取：`real_2026_11_05_v4`，8 題（2026-11-05 由 D 產生，C 已核對）。
 
 ## 五、C 組對 RETRIEVER_CONTRACT 的確認
 

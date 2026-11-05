@@ -1,0 +1,96 @@
+{
+  "description": "檢索改善用的保留題（holdout）：在調整排序之前寫定、不依結果修改，用來確認改善不是只對 retrieval_questions.json 有效。只放問題與預期證據 ID。",
+  "dataset_hint": "real_2026_11_05_v3",
+  "questions": [
+    {
+      "qid": "h01",
+      "question": "富邦人壽 FBO 最近一次公告的宣告利率是幾%？",
+      "product_id": "prd_fbo",
+      "topic": "宣告利率（最新月份）",
+      "expected_evidence_ids": [
+        "ev_rate_fbo_202611"
+      ]
+    },
+    {
+      "qid": "h02",
+      "question": "南山 ACUPL 民國115年7月宣告利率",
+      "product_id": "prd_acupl",
+      "topic": "宣告利率（民國年月）",
+      "expected_evidence_ids": [
+        "ev_rate_acupl_202607"
+      ]
+    },
+    {
+      "qid": "h03",
+      "question": "台灣人壽超美利最低要買多少保額？",
+      "product_id": "prd_u09r0",
+      "topic": "最低投保金額",
+      "expected_evidence_ids": [
+        "E4"
+      ]
+    },
+    {
+      "qid": "h04",
+      "question": "美利大運的最低保額是多少美元",
+      "product_id": "prd_fbo",
+      "topic": "最低投保金額",
+      "expected_evidence_ids": [
+        "E14"
+      ]
+    },
+    {
+      "qid": "h05",
+      "question": "美利大運 DM 試算是用多少宣告利率假設的？",
+      "product_id": "prd_fbo",
+      "topic": "DM 假設宣告利率",
+      "expected_evidence_ids": [
+        "E17"
+      ]
+    },
+    {
+      "qid": "h06",
+      "question": "超美利繳費期滿第 6 年末的保證解約金",
+      "product_id": "prd_u09r0",
+      "topic": "解約金",
+      "expected_evidence_ids": [
+        "E8"
+      ]
+    },
+    {
+      "qid": "h07",
+      "question": "超美利 DM 範例的基本保險金額是多少？",
+      "product_id": "prd_u09r0",
+      "topic": "範例保額",
+      "expected_evidence_ids": [
+        "E6"
+      ]
+    },
+    {
+      "qid": "h08",
+      "question": "南山美滿臻愛的預定利率是幾%？",
+      "product_id": "prd_acupl",
+      "topic": "預定利率",
+      "expected_evidence_ids": [
+        "doc_acupl_dm_2026_06_p002_009"
+      ]
+    },
+    {
+      "qid": "h09",
+      "question": "台灣人壽超美利條款裡寫的預定利率",
+      "product_id": "prd_u09r0",
+      "topic": "預定利率",
+      "expected_evidence_ids": [
+        "doc_taiwanlife_term_034_p001_026"
+      ]
+    },
+    {
+      "qid": "h10",
+      "question": "超美利第 20 保單年度末保證解約金",
+      "product_id": "prd_u09r0",
+      "topic": "解約金",
+      "expected_evidence_ids": [
+        "E10"
+      ]
+    }
+  ]
+}

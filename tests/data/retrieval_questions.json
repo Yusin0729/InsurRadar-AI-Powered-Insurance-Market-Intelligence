@@ -1,0 +1,99 @@
+{
+  "description": "檢索評估用測試問題（10/31 任務）。只放問題與預期證據 ID，不放原文；原文在 data/real/dataset.json（不進 Git）。expected_evidence_ids 任一出現在前 k 筆即算命中。",
+  "dataset_hint": "real_2026_11_05_v3（E 系列為 B 組人工證據；doc_* 為 PDF 段落證據，出現於 v3 起）",
+  "questions": [
+    {
+      "qid": "q01",
+      "question": "南山美滿臻愛 ACUPL 目前最新一期的宣告利率是多少？",
+      "product_id": "prd_acupl",
+      "topic": "宣告利率（最新月份）",
+      "expected_evidence_ids": [
+        "ev_rate_acupl_202611"
+      ]
+    },
+    {
+      "qid": "q02",
+      "question": "台灣人壽超美利 U09R0 2026年11月的宣告利率是多少？",
+      "product_id": "prd_u09r0",
+      "topic": "宣告利率（指定月份）",
+      "expected_evidence_ids": [
+        "ev_rate_u09r0_202611"
+      ]
+    },
+    {
+      "qid": "q03",
+      "question": "富邦美利大運 FBO 在 2026 年 8 月的宣告利率是多少？",
+      "product_id": "prd_fbo",
+      "topic": "宣告利率（指定月份，官網用民國年 115/8）",
+      "expected_evidence_ids": [
+        "ev_rate_fbo_202608"
+      ]
+    },
+    {
+      "qid": "q04",
+      "question": "南山美滿臻愛的投保年齡範圍和最低投保金額是多少？",
+      "product_id": "prd_acupl",
+      "topic": "投保年齡／最低投保金額",
+      "expected_evidence_ids": [
+        "E3",
+        "doc_acupl_dm_2026_06_p004_006"
+      ]
+    },
+    {
+      "qid": "q05",
+      "question": "台灣人壽超美利的繳費年期有哪些？幾歲可以投保？",
+      "product_id": "prd_u09r0",
+      "topic": "繳費年期／投保年齡",
+      "expected_evidence_ids": [
+        "E4"
+      ]
+    },
+    {
+      "qid": "q06",
+      "question": "富邦美利大運選 8 年期繳費，投保年齡上限是幾歲？",
+      "product_id": "prd_fbo",
+      "topic": "投保年齡（指定年期）",
+      "expected_evidence_ids": [
+        "E14"
+      ]
+    },
+    {
+      "qid": "q07",
+      "question": "富邦美利大運 6 年期的預定利率是多少？",
+      "product_id": "prd_fbo",
+      "topic": "預定利率",
+      "expected_evidence_ids": [
+        "E16"
+      ]
+    },
+    {
+      "qid": "q08",
+      "question": "超美利 DM 範例中假設的宣告利率是多少？",
+      "product_id": "prd_u09r0",
+      "topic": "DM 假設宣告利率",
+      "expected_evidence_ids": [
+        "E13"
+      ]
+    },
+    {
+      "qid": "q09",
+      "question": "超美利第 10 保單年度末的保證解約金是多少？",
+      "product_id": "prd_u09r0",
+      "topic": "解約金（保證，基本保額）",
+      "expected_evidence_ids": [
+        "E9"
+      ]
+    },
+    {
+      "qid": "q10",
+      "question": "南山美滿臻愛 40 歲男性 6 年期的年繳費率是多少？",
+      "product_id": "prd_acupl",
+      "topic": "年繳費率",
+      "expected_evidence_ids": [
+        "E1",
+        "E2",
+        "doc_acupl_dm_2026_06_p004_003"
+      ]
+    }
+  ]
+}

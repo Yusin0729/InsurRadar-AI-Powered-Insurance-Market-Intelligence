@@ -3,10 +3,13 @@
 設計重點：
 1. 只索引目前快照 evidence 的 excerpt；長原文切成「原文的連續子字串」片段，
    因此回傳的 excerpt 一定能通過 rag_service.validate_retrieved_items 的子片段檢查。
+   條款／DM 的 PDF 段落由 tools/add_pdf_evidence.py 先登記為 evidence，再一併索引。
 2. 來源欄位（標題、網址、頁碼、版本、商品關聯…）一律從快照原樣複製，不自行改寫。
 3. 文件向量依 dataset_id＋片段內容快取於 data/real/index/，Demo 現場只需嵌入使用者問題。
-4. 沒有 API Key、離線（INSURRADAR_OFFLINE=1）或嵌入失敗時，自動退回既有 MockRetriever
-   的關鍵字比對，不中斷問答；last_mode 記錄本次實際使用的模式，供 UI 顯示。
+4. 沒有 API Key、離線（INSURRADAR_OFFLINE=1）或嵌入失敗時，自動退回關鍵字比對，
+   不中斷問答；last_mode 記錄本次實際使用的模式，供 UI 顯示。
+5. 關鍵字計分與排序調整（商品、月份、問題類型加權）在 services/c_rerank.py，
+   向量與關鍵字兩種模式都套用。
 
 外部套件：numpy（已在 requirements.txt 宣告）、google-genai（專案既有）。
 前端透過 services/c_integration.py 取得本檢索器，不直接建立。
@@ -23,6 +26,7 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
+from services.c_rerank import Reranker
 from services.retriever import BaseRetriever, MockRetriever
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +72,36 @@ def split_excerpt(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLA
 # ---------------------------------------------------------------------------
 # 嵌入：預設使用 Gemini；測試時可注入假的 embedder
 # ---------------------------------------------------------------------------
-def gemini_embedder(api_key: str, model: str = DEFAULT_EMBED_MODEL) -> Embedder:
+_TRANSIENT_MARKERS = ("429", "500", "503", "504", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "DEADLINE_EXCEEDED")
+
+
+def is_transient_error(err: Exception) -> bool:
+    """免費金鑰常見的 429（額度）、503（忙碌）等暫時性錯誤才重試；金鑰錯誤等直接失敗。"""
+    code = getattr(err, "code", None) or getattr(err, "status_code", None)
+    if isinstance(code, int):
+        return code in (429, 500, 503, 504)
+    return any(marker in str(err) for marker in _TRANSIENT_MARKERS)
+
+
+def call_with_retry(call: Callable[[], Any], *, attempts: int = 1, base_delay: float = 2.0,
+                    max_delay: float = 60.0, sleep: Callable[[float], None] | None = None) -> Any:
+    """暫時性錯誤時以指數退避重試；attempts＝總嘗試次數，1 表示不重試。"""
+    import time
+
+    sleep = sleep or time.sleep
+    for attempt in range(1, attempts + 1):
+        try:
+            return call()
+        except Exception as err:
+            if attempt == attempts or not is_transient_error(err):
+                raise
+            sleep(min(base_delay * 2 ** (attempt - 1), max_delay))
+    raise AssertionError("unreachable")
+
+
+def gemini_embedder(api_key: str, model: str = DEFAULT_EMBED_MODEL, *, attempts: int = 1) -> Embedder:
+    """attempts：每批的嘗試次數。線上問答維持 1（失敗就改關鍵字，不讓使用者久等）；
+    tools/build_index.py 預先建索引時使用較多次數。"""
     from google import genai
     from google.genai import types
 
@@ -78,10 +111,13 @@ def gemini_embedder(api_key: str, model: str = DEFAULT_EMBED_MODEL) -> Embedder:
         vectors: list[list[float]] = []
         for i in range(0, len(texts), EMBED_BATCH):
             batch = list(texts[i:i + EMBED_BATCH])
-            result = client.models.embed_content(
-                model=model,
-                contents=batch,
-                config=types.EmbedContentConfig(task_type=task_type),
+            result = call_with_retry(
+                lambda: client.models.embed_content(
+                    model=model,
+                    contents=batch,
+                    config=types.EmbedContentConfig(task_type=task_type),
+                ),
+                attempts=attempts,
             )
             vectors.extend(list(item.values) for item in result.embeddings)
         if len(vectors) != len(texts):
@@ -89,6 +125,18 @@ def gemini_embedder(api_key: str, model: str = DEFAULT_EMBED_MODEL) -> Embedder:
         return vectors
 
     return embed
+
+
+def default_embedder(attempts: int = 1) -> Embedder | None:
+    """依環境設定建立 Gemini 嵌入函式；離線模式或沒有 API Key 時回傳 None。"""
+    if os.getenv("INSURRADAR_OFFLINE") == "1":
+        return None
+    from services.llm_service import get_gemini_config  # 會先載入 .env，也支援 Streamlit Secrets
+
+    api_key = get_gemini_config()["api_key"]
+    if not api_key or api_key == "your_gemini_api_key_here":
+        return None
+    return gemini_embedder(api_key, os.getenv("GEMINI_EMBED_MODEL", DEFAULT_EMBED_MODEL), attempts=attempts)
 
 
 def _normalize(matrix: np.ndarray) -> np.ndarray:
@@ -125,16 +173,13 @@ class HybridRetriever(BaseRetriever):
             e["evidence_id"]: e for e in dataset.get("evidence", [])
             if isinstance(e.get("excerpt"), str) and e["excerpt"].strip()
         }
+        self.reranker = Reranker(dataset, self.evidence)
         self.chunks: list[tuple[str, str]] = [
             (eid, piece) for eid, item in self.evidence.items() for piece in split_excerpt(item["excerpt"])
         ]
 
-        if embedder is None and os.getenv("INSURRADAR_OFFLINE") != "1":
-            from services.llm_service import get_gemini_config  # 會先載入 .env，也支援 Streamlit Secrets
-
-            api_key = get_gemini_config()["api_key"]
-            if api_key and api_key != "your_gemini_api_key_here":
-                embedder = gemini_embedder(api_key, os.getenv("GEMINI_EMBED_MODEL", DEFAULT_EMBED_MODEL))
+        if embedder is None:
+            embedder = default_embedder()
         self.embedder = embedder
         self.matrix: np.ndarray | None = None
         self._index_tried = False  # 索引延後到第一次檢索才建立，開頁面不會呼叫 API
@@ -207,9 +252,13 @@ class HybridRetriever(BaseRetriever):
         pieces = [piece for chunk_eid, piece in self.chunks if chunk_eid == eid]
         return max(pieces, key=lambda p: sum(g in p for g in grams)) if pieces else self.evidence[eid]["excerpt"].strip()
 
-    def _keyword_results(self, keyword_hits, query: str, top_k: int) -> list[dict[str, Any]]:
-        return [self._format(i["evidence_id"], self._best_chunk(i["evidence_id"], query.strip()), float(i["score"]))
-                for i in keyword_hits if i["evidence_id"] in self.evidence][:top_k]
+    def _keyword_results(self, keyword_scores: dict[str, float], profile, query: str,
+                         top_k: int) -> list[dict[str, Any]]:
+        ranked = sorted(((score * self.reranker.factor(eid, profile), eid) for eid, score in keyword_scores.items()),
+                        key=lambda x: (-x[0], x[1]))
+        scores = {eid: score for score, eid in ranked}
+        picked = self.reranker.diversify([eid for _, eid in ranked], profile, top_k)
+        return [self._format(eid, self._best_chunk(eid, query.strip()), scores[eid]) for eid in picked]
 
     def search(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
         if type(top_k) is not int or top_k < 1:
@@ -218,19 +267,19 @@ class HybridRetriever(BaseRetriever):
             return []
 
         self._ensure_index()
-        keyword_hits = self.keyword.search(query, top_k=max(len(self.evidence), 1))
-        keyword_scores = {item["evidence_id"]: float(item["score"]) for item in keyword_hits}
+        profile = self.reranker.profile(query)
+        keyword_scores = self.reranker.keyword_scores(profile)
 
         if self.matrix is None:
             self.last_mode = "keyword"
-            return self._keyword_results(keyword_hits, query, top_k)
+            return self._keyword_results(keyword_scores, profile, query, top_k)
 
         try:
             query_vec = np.asarray(self.embedder([query.strip()], "RETRIEVAL_QUERY")[0], dtype=np.float32)
         except Exception as err:
             self.last_mode = "keyword"
             self.last_error = f"問題嵌入失敗，改用關鍵字檢索：{err}"
-            return self._keyword_results(keyword_hits, query, top_k)
+            return self._keyword_results(keyword_scores, profile, query, top_k)
 
         self.last_mode = "hybrid"
         self.last_error = None
@@ -246,9 +295,13 @@ class HybridRetriever(BaseRetriever):
             if eid not in best or score > best[eid][0]:
                 best[eid] = (score, piece)
 
-        ranked = sorted(best.items(), key=lambda kv: (kv[1][0], kv[0]), reverse=True)
-        return [self._format(eid, piece, score) for eid, (score, piece) in ranked
-                if score >= self.min_score][:top_k]
+        # 相關度門檻用調整前的分數判斷；排序與回傳分數套用商品／月份／類型加權
+        ranked = sorted(((score * self.reranker.factor(eid, profile), eid, piece)
+                         for eid, (score, piece) in best.items() if score >= self.min_score),
+                        key=lambda x: (-x[0], x[1]))
+        found = {eid: (score, piece) for score, eid, piece in ranked}
+        picked = self.reranker.diversify([eid for _, eid, _ in ranked], profile, top_k)
+        return [self._format(eid, found[eid][1], found[eid][0]) for eid in picked]
 
 
 def describe_mode(retriever: BaseRetriever) -> str:

@@ -134,6 +134,29 @@ class ExtractTest(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertFalse(out.exists())
 
+    def test_main_all_runs_every_job_with_placeholder_key_rejected(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as folder:
+            doc_path = Path(folder) / "doc.json"
+            ds_path = Path(folder) / "ds.json"
+            out = Path(folder) / "out"
+            doc_path.write_text(json.dumps(DOC, ensure_ascii=False), encoding="utf-8")
+            ds_path.write_text(json.dumps({"products": [PRODUCT]}, ensure_ascii=False), encoding="utf-8")
+            argv = ["--all", "--dataset", str(ds_path), "--output-dir", str(out)]
+            fake = lambda key, model: (lambda prompt: response(item("currency", "美元", "doc_test_p001_001", "均以美元計價")))
+            with mock.patch.object(ef, "JOBS", [(str(doc_path), "prd_test")]),                     mock.patch.object(ef, "gemini_generate", fake):
+                with mock.patch("services.llm_service.get_gemini_config",
+                                return_value={"api_key": "請貼上你的金鑰", "model": "m"}):
+                    self.assertEqual(ef.main(argv), 1)
+                self.assertFalse(out.exists())
+                with mock.patch("services.llm_service.get_gemini_config",
+                                return_value={"api_key": "test-key", "model": "m"}):
+                    self.assertEqual(ef.main(argv), 0)
+            data = json.loads((out / "doc_test.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["items"][0]["value"], "美元")
+
 
 if __name__ == "__main__":
     unittest.main()

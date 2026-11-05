@@ -26,7 +26,7 @@ D 組的資料服務簽章、驗證規則、Schema、Mock 快照、RAG 驗證邏
 | `tools/parse_pdf.py` | 條款／DM PDF 解析，見第四之二節 |
 | `tests/test_parse_pdf.py` | PDF 解析測試（9 項，用程式產生的 PDF） |
 | `tools/extract_fields.py`、`prompts/extract_fields.txt` | LLM 結構化抽取，見第四之三節 |
-| `tests/test_extract_fields.py` | 抽取驗證測試（7 項，假的模型回應） |
+| `tests/test_extract_fields.py` | 抽取驗證測試（8 項，假的模型回應） |
 
 ## 二、對 D 組檔案的修改（已套用，2026-11-02）
 
@@ -140,9 +140,14 @@ python -m tools.parse_pdf data/real/docs/TaiwanLife_term_034.pdf --doc-id doc_ta
 
 ## 四之三、LLM 結構化抽取（`tools/extract_fields.py`，2026-11-02 新增）
 
+先把 Gemini API Key 貼到專案根目錄的 `.env`（`GEMINI_API_KEY=` 後面；此檔已被 git 忽略），再執行：
+
 ```powershell
-python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.json --product-id prd_u09r0
+python -m tools.extract_fields --all          # 依序處理 JOBS 內所有文件
+python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.json --product-id prd_u09r0   # 只跑一份
 ```
+
+新增 PDF 時，在 `tools/extract_fields.py` 的 `JOBS` 加一行（文件路徑, product_id）。
 
 - 輸入是 `parse_pdf` 的段落，用 Gemini 結構化輸出抽取欄位：幣別、繳費年期、各年期投保年齡、最低投保金額、預定利率、DM 假設宣告利率。Prompt 在 `prompts/extract_fields.txt`。
 - 每個值都附 `paragraph_id`、頁碼、條號，以及逐字的 `quote`。

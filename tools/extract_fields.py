@@ -1,7 +1,11 @@
 """LLM 結構化抽取：從已解析的條款／DM 段落抽出商品欄位，每個值都附來源段落、頁碼與原文引句。
 
-用法（在專案根目錄，需設定 GEMINI_API_KEY）：
-    python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.json --product-id prd_u09r0
+用法（在專案根目錄）：
+    1. 把 Gemini API Key 貼到專案根目錄的 .env：GEMINI_API_KEY=你的金鑰（.env 已被 git 忽略）
+    2. 一次跑完 JOBS 內所有文件：
+       python -m tools.extract_fields --all
+       或只跑一份：
+       python -m tools.extract_fields data/real/processed/pdf/doc_taiwanlife_term_034.json --product-id prd_u09r0
 
 輸入是 tools/parse_pdf.py 的輸出；輸出寫到 data/real/processed/extracted/<doc_id>.json。
 
@@ -52,6 +56,13 @@ FIELDS: dict[str, dict[str, Any]] = {
     "assumed_declared_rate_percent": {"type": "number", "per_term": False,
                                       "label": "DM 或試算範例中「假設」的宣告利率（%），這是假設值，不是公告利率"},
 }
+# --all 會依序處理的文件與對應商品（新增 PDF 時在這裡加一行）
+JOBS: list[tuple[str, str]] = [
+    ("data/real/processed/pdf/doc_taiwanlife_term_034.json", "prd_u09r0"),
+    ("data/real/processed/pdf/doc_acupl_dm_2026_06.json", "prd_acupl"),
+]
+PLACEHOLDER_KEYS = {"", "your_gemini_api_key_here", "請貼上你的金鑰"}
+
 KEYWORDS = ("年期", "躉繳", "歲", "年齡", "幣", "美元", "保額", "投保金額", "利率", "宣告", "假設", "預定")
 
 Generate = Callable[[str], str]
@@ -259,46 +270,68 @@ def extract(document: dict[str, Any], product: dict[str, Any], *, generate: Gene
     }
 
 
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="以 Gemini 從條款段落抽取欄位（每個值附來源段落與頁碼）")
-    parser.add_argument("document", type=Path, help="tools/parse_pdf.py 輸出的 JSON")
-    parser.add_argument("--product-id", required=True)
-    parser.add_argument("--dataset", type=Path, default=DATASET_PATH, help="用來查商品名稱的快照")
-    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
-    args = parser.parse_args(argv)
-
-    resolve = lambda p: p if p.is_absolute() else PROJECT_ROOT / p
-    document = json.loads(resolve(args.document).read_text(encoding="utf-8"))
-    dataset = json.loads(resolve(args.dataset).read_text(encoding="utf-8"))
-    product = next((p for p in dataset["products"] if p["product_id"] == args.product_id), None)
-    if product is None:
-        print(f"[錯誤] 快照中沒有商品 {args.product_id}", file=sys.stderr)
-        return 2
-
-    from services.llm_service import get_gemini_config  # 讀 .env 與 Streamlit Secrets
-    config = get_gemini_config()
-    api_key = config["api_key"]
-    if not api_key or api_key == "your_gemini_api_key_here":
-        print("[失敗] 尚未設定 GEMINI_API_KEY，沒有執行抽取。", file=sys.stderr)
-        return 1
-    try:
-        result = extract(document, product, generate=gemini_generate(api_key, config["model"]),
-                         model=config["model"])
-    except ExtractionError as err:
-        print(f"[失敗] {err}", file=sys.stderr)
-        return 1
-
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    output = args.output_dir / f"{document['doc_id']}.json"
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"[完成] 採用 {len(result['items'])} 筆、拒收 {len(result['rejected'])} 筆 → {output}")
+def _report(result: dict[str, Any], output: Path) -> None:
+    print(f"[完成] {result['doc_id']}：採用 {len(result['items'])} 筆、拒收 {len(result['rejected'])} 筆 → {output}")
     for item in result["items"]:
         term = "" if item["term_years"] is None else f"（{item['term_years']} 年期）"
         flag = "  ⚠ 矛盾" if item["status"] == "conflict" else ""
         print(f"  {item['field']}{term} = {item['value']}｜第 {item['page']} 頁 {item['paragraph_id']}{flag}")
     for item in result["rejected"]:
         print(f"  [拒收] {item['reason']}：{json.dumps(item['item'], ensure_ascii=False)[:120]}")
-    return 0
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="以 Gemini 從條款段落抽取欄位（每個值附來源段落與頁碼）")
+    parser.add_argument("document", type=Path, nargs="?", help="tools/parse_pdf.py 輸出的 JSON")
+    parser.add_argument("--product-id")
+    parser.add_argument("--all", action="store_true", help="依序處理 JOBS 內所有文件")
+    parser.add_argument("--dataset", type=Path, default=DATASET_PATH, help="用來查商品名稱的快照")
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
+    args = parser.parse_args(argv)
+
+    if args.all:
+        jobs = [(Path(doc), pid) for doc, pid in JOBS]
+    elif args.document and args.product_id:
+        jobs = [(args.document, args.product_id)]
+    else:
+        parser.error("請指定 document 與 --product-id，或使用 --all")
+
+    resolve = lambda p: p if p.is_absolute() else PROJECT_ROOT / p
+    dataset = json.loads(resolve(args.dataset).read_text(encoding="utf-8"))
+    products = {p["product_id"]: p for p in dataset["products"]}
+    for _, pid in jobs:
+        if pid not in products:
+            print(f"[錯誤] 快照中沒有商品 {pid}", file=sys.stderr)
+            return 2
+
+    from services.llm_service import get_gemini_config  # 讀 .env 與 Streamlit Secrets
+    config = get_gemini_config()
+    api_key = (config["api_key"] or "").strip()
+    if api_key in PLACEHOLDER_KEYS:
+        print("[失敗] 尚未設定 GEMINI_API_KEY（請貼到專案根目錄的 .env），沒有執行抽取。", file=sys.stderr)
+        return 1
+    generate = gemini_generate(api_key, config["model"])
+
+    output_dir = resolve(args.output_dir)
+    failed = 0
+    for doc_path, pid in jobs:
+        path = resolve(doc_path)
+        if not path.exists():
+            print(f"[失敗] 找不到 {doc_path}，請先執行 tools/parse_pdf.py", file=sys.stderr)
+            failed += 1
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            result = extract(document, products[pid], generate=generate, model=config["model"])
+        except Exception as err:  # 單份失敗不影響其他文件
+            print(f"[失敗] {document.get('doc_id', doc_path)}：{err}", file=sys.stderr)
+            failed += 1
+            continue
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / f"{document['doc_id']}.json"
+        output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _report(result, output)
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

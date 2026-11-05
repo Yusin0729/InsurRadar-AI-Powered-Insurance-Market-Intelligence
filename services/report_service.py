@@ -215,6 +215,8 @@ def build_markdown_report(dataset, state, *, generated_at):
         counts["rag_answers"] += 1
         field("問題", question.get("content"))
         field("生成時間", msg.get("created_at"))
+        if msg.get("from_cache"):
+            field("回答來源", "Demo 快取回答（預先產生，非本次即時生成）")
         field("回答", msg.get("content"))
         lines.append("引用存在與檢索範圍檢查通過；語意支持性未驗證，結論待人工複核。\n")
         cite(citations)

@@ -318,6 +318,13 @@ class RAGServiceTestCase(unittest.TestCase):
                 config = get_gemini_config()
                 self.assertEqual((config["model"], config["api_key"]), expected)
 
+    def test_default_model_usable_by_free_keys_and_shared(self):
+        import services.rag_service as rag
+        from services.llm_service import DEFAULT_MODEL
+        # 免費金鑰不能用 gemini-2.5-flash；兩個服務共用同一預設值，GEMINI_MODEL 可覆寫（見上一測試）。
+        self.assertEqual(DEFAULT_MODEL, "gemini-3.5-flash-lite")
+        self.assertEqual(rag.DEFAULT_MODEL, DEFAULT_MODEL)
+
 
 class RAGStreamlitIntegrationTest(unittest.TestCase):
     def setUp(self):

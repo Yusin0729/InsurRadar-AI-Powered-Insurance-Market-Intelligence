@@ -22,12 +22,15 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from services.gemini_retry import BUSY_MESSAGE, is_transient, with_retry
+
 # 嘗試載入 .env 檔案
 load_dotenv()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROMPT_PATH = PROJECT_ROOT / "prompts" / "analysis.txt"
-DEFAULT_MODEL = "gemini-2.5-flash"
+# 新申請的免費金鑰已不能用 gemini-2.5-flash（回 404）；2026-11 實測可用。GEMINI_MODEL 仍可覆寫。
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 class LLMConfigError(ValueError):
@@ -277,17 +280,20 @@ def call_gemini_api(
             response_mime_type="application/json",
             temperature=0.15,
         )
-        response = client.models.generate_content(
+        # 503 忙碌、429 額度等暫時性錯誤短暫重試（services/gemini_retry.py）
+        response = with_retry(lambda: client.models.generate_content(
             model=model,
             contents=prompt,
             config=config,
-        )
+        ))
         if not response or not response.text:
             raise LLMAPIError("Gemini API 未回傳有效文字內容。")
         return response.text
     except Exception as err:
         if isinstance(err, (LLMConfigError, LLMAPIError)):
             raise
+        if is_transient(err):
+            raise LLMAPIError(BUSY_MESSAGE) from err
         raise LLMAPIError(f"Gemini API 呼叫過程中發生錯誤：{err}") from err
 
 

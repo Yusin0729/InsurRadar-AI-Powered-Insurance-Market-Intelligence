@@ -125,7 +125,8 @@ def render_product_detail(product, rates, period_month, dataset):
     st.caption("關聯證據 ID：" + ("、".join(evidence_ids) or "資料待補"))
     evidence_button(dataset, evidence_ids, source_kind="product", source_id=product["product_id"],
                     label="檢視商品與利率證據")
-    st.caption("引用存在與模擬複核紀錄，不代表真實市場已驗證結論。")
+    st.caption("引用存在與模擬複核紀錄，不代表真實市場已驗證結論。" if dataset["data_mode"] == "mock"
+               else "引用存在不代表結論已經人工驗證；宣告利率非保證，可能調整。")
 
 
 def render_comparison(dataset):
@@ -143,7 +144,7 @@ def render_comparison(dataset):
         columns[0].metric("符合條件商品", len(products))
         columns[1].metric("保險公司", len({item["company_id"] for item in products}))
         columns[2].metric("宣告利率月份", period_month or "無月份資料")
-    st.info("宣告利率不是保證報酬或 IRR。商品符合年期／年齡篩選，不代表該筆利率適用；"
+    st.info("宣告利率非保證，可能調整，也不是保證報酬或 IRR。商品符合年期／年齡篩選，不代表該筆利率適用；"
             "請逐筆核對月份、生效期間與適用條件。本頁不提供利率排名。")
     if not products:
         st.info("沒有符合條件的商品，請調整或重設側邊欄篩選。")

@@ -71,13 +71,15 @@ def render_dashboard(dataset):
         mode = st.radio(
             "觀察來源模式",
             options=["mock", "gemini"],
-            format_func=lambda x: "📌 預設 Mock 快照觀察" if x == "mock" else "✨ Gemini 智慧分析",
+            format_func=lambda x: ("📌 預設 Mock 快照觀察" if dataset["data_mode"] == "mock" else "📌 快照既有觀察")
+            if x == "mock" else "✨ Gemini 智慧分析",
             horizontal=True,
             key="dashboard_insight_mode",
             label_visibility="collapsed",
         )
         if mode == "mock":
-            st.caption("Mock／預先撰寫的模擬觀察；未呼叫 LLM。")
+            st.caption("Mock／預先撰寫的模擬觀察；未呼叫 LLM。" if dataset["data_mode"] == "mock"
+                       else "快照中既有的觀察；未呼叫 LLM。")
             if not data["insights"]:
                 st.info("目前沒有觀察資料。")
             for insight in data["insights"]:

@@ -1,18 +1,37 @@
 """AI 觀察、待追查事項與 RAG 智慧問答；外部套件：streamlit、google-genai、numpy（C 組檢索器）。"""
 
+from datetime import datetime, timedelta, timezone
+
 import streamlit as st
 
 from services.c_integration import describe_mode, get_retriever
 from services.data_service import get_insights, get_investigations
+from services.demo_cache import answer_with_demo_cache
 from services.rag_service import answer_rag_query
 from ui.dashboard import PRIORITY_LABELS, STATUS_LABELS
 from ui.evidence import evidence_button, render_insight_review
+
+TAIPEI = timezone(timedelta(hours=8))  # 台灣無日光節約，固定 UTC+8
+
+
+def cache_label(msg):
+    """快取回答必須明確標示；時間轉台北時間顯示。"""
+    created = msg.get("cache_created_at") or ""
+    try:
+        created = datetime.fromisoformat(created).astimezone(TAIPEI).strftime("%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        created = created or "時間未知"
+    model = f"，模型 {msg['cache_model']}" if msg.get("cache_model") else ""
+    reason = ("即時 Gemini 服務忙碌，改顯示同一快照、同一題目的" if msg.get("cache_reason") == "fallback"
+              else "Demo 快取模式：顯示同一快照、同一題目的")
+    return f"🗂️ 快取回答（預先產生於 {created}（台北時間）{model}）｜{reason}預存回答，非本次即時生成。"
 
 
 def render_assistant(dataset):
     st.caption("INSURRADAR / AI & RAG")
     st.title("AI 分析與 RAG 助手")
-    st.info("問答會檢索目前快照並呼叫 Gemini；Mock 表示來源為模擬資料。引用檢查只確認來源可追溯，不代表語意支持性或人工複核已通過。每次問題獨立檢索，不解析前文指代。")
+    source_note = "Mock 表示來源為模擬資料。" if dataset["data_mode"] == "mock" else "來源為目前真實資料快照，數值須以原始文件為準。"
+    st.info(f"問答會檢索目前快照並呼叫 Gemini；{source_note}引用檢查只確認來源可追溯，不代表語意支持性或人工複核已通過。每次問題獨立檢索，不解析前文指代。")
     if dataset["data_mode"] == "mock":
         st.caption("Mock Data／模擬觀察、來源與複核紀錄，不代表真實市場結論。")
     st.caption("展示完整快照，不套用競品比較或市場情報篩選。")
@@ -22,7 +41,8 @@ def render_assistant(dataset):
         source_mode = st.radio(
             "觀察卡片來源",
             options=["mock", "gemini"],
-            format_func=lambda x: "📌 預設 Mock 快照觀察" if x == "mock" else f"✨ Gemini 智慧分析觀察（{len(res['insights'])} 則）",
+            format_func=lambda x: ("📌 預設 Mock 快照觀察" if dataset["data_mode"] == "mock" else "📌 快照既有觀察")
+            if x == "mock" else f"✨ Gemini 智慧分析觀察（{len(res['insights'])} 則）",
             horizontal=True,
             key="assistant_insight_source_mode",
         )
@@ -79,7 +99,7 @@ def render_assistant(dataset):
 
         # 快速範例問題捷徑
         sample_questions = [
-            "模擬甲人壽一號商品宣告利率為何？",
+            "模擬甲人壽一號商品宣告利率為何？" if dataset["data_mode"] == "mock" else "美利大運的宣告利率是多少？",
             "哪些保險商品提供 6 年期繳費方案？",
             "各家美元保單投保年齡限制為何？",
         ]
@@ -110,6 +130,8 @@ def render_assistant(dataset):
                         st.error(msg["content"])
                     else:
                         st.write(msg["content"])
+                        if msg.get("from_cache"):
+                            st.caption(cache_label(msg))
                         if status == "success":
                             st.caption("Gemini 生成回答｜引用存在及檢索範圍檢查通過；語意支持性未驗證，AI 結論待人工複核。")
                         if msg.get("is_mock"):
@@ -144,7 +166,8 @@ def render_assistant(dataset):
             })
             with st.spinner("正在檢索相關保單與證據，並由 Gemini 生成解答..."):
                 retriever = get_retriever(dataset)
-                result = answer_rag_query(active_query, dataset, retriever=retriever)
+                result = answer_with_demo_cache(active_query, dataset, retriever=retriever,
+                                                answer_fn=answer_rag_query)
                 st.session_state["rag_chat_messages"].append({
                     "role": "assistant",
                     "dataset_id": dataset["dataset_id"],
@@ -158,7 +181,12 @@ def render_assistant(dataset):
                     "verification_passed": result.get("verification_passed", False),
                     "error_message": result.get("error_message"),
                     "is_mock": result.get("is_mock", True),
-                    "retrieval_mode": describe_mode(retriever),
+                    "retrieval_mode": ("快取回答：本次未重新檢索，以下為預先產生時的檢索片段"
+                                       if result.get("from_cache") else describe_mode(retriever)),
+                    "from_cache": bool(result.get("from_cache")),
+                    "cache_created_at": result.get("cache_created_at"),
+                    "cache_model": result.get("cache_model"),
+                    "cache_reason": result.get("cache_reason"),
                 })
             st.rerun()
 

@@ -1,3 +1,52 @@
+# InsurRadar Demo 準備交接（D 組，2026-11-05）
+
+本節為最新狀態，優先於下方 E3／E2 紀錄。功能已凍結，只做修錯與 Demo 準備。
+
+## Demo 問答快取（services/demo_cache.py）
+
+- 目的：免費 Gemini 金鑰現場可能回 503／429，快取讓預定的 Demo 題目不必依賴即時 API。
+- 產生：`INSURRADAR_DATASET_PATH=data/real/dataset.json python -m tools.build_demo_cache`。對每題呼叫真實 `answer_rag_query`（C 組檢索器＋Gemini），只寫入 status 為 success／insufficient_data 且通過引用驗證的結果；其他狀態不寫入並列為「無結果」。已有快取的題目略過，加 `--refresh` 重新產生。
+- 快取檔：`data/real/demo_cache/demo_answers.json`（`data/real` 已被 .gitignore 排除，不會上傳）。每筆含 dataset_id、question、answer、citations、retrieved_evidence、created_at、model。
+- 使用時機：(1) 即時呼叫因暫時性錯誤（503／429／500／504）失敗時自動改用；(2) `INSURRADAR_DEMO_CACHE=1` 時優先使用，命中就不呼叫 API（未命中照常即時呼叫）。
+- 安全規則：題目須完全相同（只忽略前後與連續空白），dataset_id 須相同，不跨快照；取出時重新檢查引用存在、檢索片段仍是目前快照原文子片段，不符就當作沒有快取。畫面以「🗂️ 快取回答（預先產生於 …（台北時間），模型 …）」標示，Markdown 報告另列「回答來源：Demo 快取回答」。引用仍可開啟證據彈窗。
+- 2026-11-05 實際產生（real_2026_11_05_v4，gemini-3.5-flash-lite），8 題皆一次成功：美利大運宣告利率（4.35%）、南山美滿臻愛最新一期宣告利率（4.30%）、超美利宣告利率（4.20%）、6 年期繳費方案、投保年齡限制、超美利第 10 年末保證解約金（305,291.60）為 success；南山美滿臻愛保單貸款利率、哪一家最好？為 insufficient_data。數字與引用 ID 已初步對照證據原文一致，請 C 組再逐筆核對。避開「富邦美利大運 6 年期的預定利率」（C 標記）。
+- Q2「哪些保險商品提供 6 年期繳費方案？」11/5 晚重產 4 次（間隔 40 秒）：3 次通過驗證但都含「增值回饋分享金為2.25％」（檢索到的富邦 6 年期依據只有 E16，原文本身就是這句），第 4 次 503。無符合條件的結果，保留舊快取，舊快取同樣含這句。要根治需修正 E16 或補一筆富邦繳費年期證據（B15，C 組資料），之後再用 `--refresh` 重產。Demo 時這題（也是快速範例第 2 顆按鈕）請由講者說明 2.25% 是增值回饋分享金、非保證，或改問其他題。
+- 快照 ID 改變（例如 v5）後，舊快取自動失效，必須重跑上述指令。
+
+## 真實模式畫面
+
+- AI 助手頁說明文字改為依模式顯示；真實快照下四頁、證據彈窗、報告匯出皆無 Mock／模擬字樣與例外（`tests/test_app.py` 的 RealModeAppTests，本機有 data/real/dataset.json 時才執行）。
+- Demo 時避免：市場情報追蹤頁（真實快照無新聞，頁面為空）、頁首「資料待補／複核提示（457 項）」展開區（真實快照的待補／複核提示很多，屬誠實揭露但不適合現場逐項展示）。
+
+## D 複核 C 代改（11/5）
+
+依 `docs/handoff/C_to_D.md` 第一節逐項複核：
+
+| # | 項目 | 結果 | 理由 |
+| --- | --- | --- | --- |
+| 1 | assistant 觀察來源 radio 依模式顯示 | 接受 | 真實模式不再出現 Mock；Mock 文字不變 |
+| 2 | assistant 第一題範例改為美利大運 | 接受 | 真實快照可答（4.35%），且已在 Demo 快取內 |
+| 3 | dashboard radio 與說明依模式切換 | 接受 | RealModeAppTests 確認真實模式四頁無 Mock／模擬字樣 |
+| 4 | comparison 商品詳情說明（真實模式） | 接受 | 用語正確，加註宣告利率非保證 |
+| 5 | comparison 頁首 info 加「宣告利率非保證，可能調整」 | 接受 | 兩種模式都適用，Mock 測試仍通過 |
+| 6 | RAG 上下文同時送頁碼與章節 | 接受 | 章節載明保證／假設利率，可避免把試算值當保證值；Demo 快取的超美利第 10 年末回答只答 305,291.60 |
+| 7 | rag_service 包 with_retry、friendly_message | 接受 | 原錯誤以 `from err` 保留，Demo 快取的忙碌判斷依賴此行為 |
+| 8 | llm_service 包 with_retry、暫時性錯誤拋 BUSY_MESSAGE | 接受 | 設定錯誤仍顯示原訊息 |
+| 9 | gemini_retry.py 與 test_gemini_retry.py | 接受 | 重試最多 2 次、總等待約 4.5 秒，金鑰錯誤不重試；測試不連網。已知限制：以字串比對「500」「INTERNAL」判斷，極少數非暫時性錯誤可能多等幾秒，不影響正確性 |
+| 10 | rag_qa.txt 三條新規則 | 接受 | 快取回答均含「非保證，可能調整」且無排名用語 |
+
+另依 C 提醒修正：`services/llm_service.py` 預設模型由 `gemini-2.5-flash`（新免費金鑰回 404）改為 `gemini-3.5-flash-lite`，`services/rag_service.py` 改為匯入同一常數；`GEMINI_MODEL`（環境變數或 Secrets）仍優先。新增測試 `test_default_model_usable_by_free_keys_and_shared`。
+
+## 部署（尚未部署，待 A 決定）
+
+Streamlit Community Cloud 目前不能直接用真實資料部署：`data/real/` 被 .gitignore 排除，而且 repo 是公開的，把真實快照、PDF 或快取推上 repo 等於公開。可選方案：
+
+1. **本機 Demo＋備援錄影（建議）**：現場以本機執行真實模式並開 `INSURRADAR_DEMO_CACHE=1`；事先錄一段完整操作影片，網路或 API 出問題時改播影片。不需任何部署。
+2. **Cloud 只展示 Mock**：直接部署目前 repo（預設 Mock 快照），可公開瀏覽，但看不到真實資料，問答需在 Secrets 設 GEMINI_API_KEY。
+3. **Secrets 提供真實快照**：改寫載入流程，從 Streamlit Secrets（或私有儲存）讀取 dataset.json 與 demo 快取。需要改 C 組的 data_service／c_integration 與部署設定，屬新功能，功能凍結期不建議；且公開網址會讓任何人看到真實資料與消耗 API 額度。
+
+---
+
 # InsurRadar E3 Markdown 匯出交接（2026-10-30）
 
 本節為目前狀態；下方 E2 與 U 階段紀錄保留為歷史依據。

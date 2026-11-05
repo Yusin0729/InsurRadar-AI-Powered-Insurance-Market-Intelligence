@@ -71,6 +71,13 @@ class ReportServiceTests(unittest.TestCase):
         self.assertNotIn("既有 Gemini 觀察", text)
         self.assertIn("快照既有觀察", text)
 
+    def test_cached_rag_answer_is_labelled(self):
+        self.assertNotIn("Demo 快取回答", self.build()["markdown"])
+        self.state["rag_chat_messages"][1]["from_cache"] = True
+        report = self.build()
+        self.assertIn("Demo 快取回答（預先產生，非本次即時生成）", report["markdown"])
+        self.assertEqual(report["counts"]["rag_answers"], 1)
+
     def test_no_rag(self):
         self.state.pop("rag_chat_messages")
         self.assertIn("RAG 問答尚未產生", self.build()["markdown"])

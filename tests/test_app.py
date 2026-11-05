@@ -481,6 +481,59 @@ class Stage1DTests(AppTestCase):
         self.assertIn("目前未檢索到足夠依據", self.messages("markdown"))
 
 
+class DemoCacheAppTests(AppTestCase):
+    def test_cached_answer_is_labelled_and_citations_open(self):
+        self.switch_to("AI 分析與 RAG 助手")
+        self.assertIn("Mock 表示來源為模擬資料", self.messages("info"))
+        evidence = self.dataset["evidence"][0]
+        cached = {"status": "success", "answer": "快取回答內容", "citations": [evidence["evidence_id"]],
+                  "retrieved_evidence": [{"evidence_id": evidence["evidence_id"], "excerpt": evidence["excerpt"],
+                                          "score": 0.9, "source_title": evidence["source_title"]}],
+                  "verification_passed": True, "is_mock": True, "created_at": "2026-11-05T10:00:00+00:00",
+                  "from_cache": True, "cache_created_at": "2026-11-05T10:00:00+00:00",
+                  "cache_model": "fake-model", "cache_reason": "fallback"}
+        with patch("ui.assistant.answer_with_demo_cache", return_value=cached):
+            self.app.chat_input[0].set_value("快取題目").run()
+        self.assert_loaded()
+        captions = self.messages("caption")
+        self.assertIn("快取回答（預先產生於 2026-11-05 18:00（台北時間），模型 fake-model）", captions)
+        self.assertIn("即時 Gemini 服務忙碌", captions)
+        self.assertTrue(self.app.session_state["rag_chat_messages"][-1]["from_cache"])
+        self.app.button(key="evidence_open_rag_answer_msg_1").click().run()
+        self.assert_loaded()
+        self.assertEqual(self.app.session_state["evidence_dialog_context"]["evidence_ids"], [evidence["evidence_id"]])
+
+    def test_live_answer_has_no_cache_label(self):
+        self.switch_to("AI 分析與 RAG 助手")
+        with patch("ui.assistant.answer_with_demo_cache", return_value={
+            "status": "success", "answer": "即時回答", "citations": [], "is_mock": True
+        }):
+            self.app.chat_input[0].set_value("即時題目").run()
+        self.assertNotIn("快取回答", self.messages("caption"))
+
+
+REAL_DATASET = Path(__file__).resolve().parents[1] / "data" / "real" / "dataset.json"
+
+
+@unittest.skipUnless(REAL_DATASET.exists(), "真實快照不在版本庫（data/real 已排除），無檔案時略過")
+class RealModeAppTests(unittest.TestCase):
+    """真實快照四頁不可出現 Mock／模擬字樣或例外。"""
+
+    def test_real_pages_have_no_mock_wording(self):
+        with patch.dict("os.environ", {"INSURRADAR_DATASET_PATH": str(REAL_DATASET)}):
+            app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+            self.assertEqual([item.message for item in app.exception], [])
+            for key, page in app._registered_pages.items():
+                app._page_hash = key
+                app.run()
+                with self.subTest(page=page["page_name"]):
+                    self.assertEqual([item.message for item in app.exception], [])
+                    texts = [str(item.value) for kind in ("title", "caption", "markdown", "info", "warning",
+                                                          "error", "success", "text", "subheader")
+                             for item in getattr(app, kind)]
+                    self.assertEqual([t for t in texts if "Mock" in t or "模擬" in t], [])
+
+
 class MarketDataTests(unittest.TestCase):
     def test_invalid_news_citations_still_fail_dataset_validation(self):
         dataset = mock_dataset()

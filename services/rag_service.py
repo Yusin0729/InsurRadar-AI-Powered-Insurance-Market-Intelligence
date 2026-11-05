@@ -24,12 +24,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from services.llm_service import clean_json_text, get_gemini_config
+from services.gemini_retry import friendly_message, with_retry
+from services.llm_service import DEFAULT_MODEL, clean_json_text, get_gemini_config
 from services.retriever import BaseRetriever, MockRetriever
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAG_PROMPT_PATH = PROJECT_ROOT / "prompts" / "rag_qa.txt"
-DEFAULT_MODEL = "gemini-2.5-flash"
 INSUFFICIENT_ANSWER = "目前未檢索到足夠依據，無法確認此問題的答案。請補充商品名稱或查詢條件。"
 
 
@@ -102,7 +102,11 @@ def format_retrieved_context(retrieved_items: list[dict[str, Any]]) -> tuple[str
         allowed_ids.append(eid)
         title = item.get("source_title", "未命名依據")
         version = f"版本:{item.get('document_version')}" if item.get("document_version") else ""
-        location = f"頁碼/章節:{item.get('page') or item.get('section') or '未註明'}"
+        # 頁碼與章節都要給模型：章節常載明「保證」或「假設宣告利率 X%」等性質，
+        # 只給頁碼時模型分不出保證值與非保證試算值。
+        page = f"頁碼:{item['page']}" if item.get("page") else ""
+        section = f"章節:{item['section']}" if item.get("section") else ""
+        location = "，".join(filter(None, [page, section])) or "頁碼/章節:未註明"
         meta = "，".join(filter(None, [version, location]))
         meta_str = f" ({meta})" if meta else ""
         excerpt = (item.get("excerpt") or "").strip().replace("\n", " ")
@@ -205,11 +209,12 @@ def call_gemini_rag_api(
             response_schema=RAGOutputSchema,
             temperature=0.1,
         )
-        response = client.models.generate_content(
+        # 503 忙碌、429 額度等暫時性錯誤短暫重試（services/gemini_retry.py）
+        response = with_retry(lambda: client.models.generate_content(
             model=model,
             contents=prompt,
             config=config,
-        )
+        ))
         if not response or not response.text:
             raise RuntimeError("Gemini API 未回傳有效文字內容。")
         return response.text
@@ -330,7 +335,7 @@ def answer_rag_query(
             return {
                 "status": "error",
                 "query": clean_query,
-                "answer": f"AI 回答生成失敗：{err}",
+                "answer": friendly_message(err, "AI 回答生成失敗："),
                 "citations": [],
                 "retrieved_evidence": retrieved_items,
                 "verification_passed": False,
